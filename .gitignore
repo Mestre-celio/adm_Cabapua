@@ -5,6 +5,7 @@ node_modules/
 netlify.toml
 netlify/
 public/
+*.js
 
 # Python
 

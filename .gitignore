@@ -1,4 +1,13 @@
+# Node.js / Netlify (não usado - app é Flask puro)
+package.json
+package-lock.json
+node_modules/
+netlify.toml
+netlify/
+public/
+
 # Python
+
 __pycache__/
 *.py[cod]
 *.pyo

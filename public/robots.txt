@@ -1,4 +1,0 @@
-User-agent: *
-Disallow: /.netlify/
-Disallow: /api/
-Allow: /

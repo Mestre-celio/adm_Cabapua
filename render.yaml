@@ -4,24 +4,24 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: "pip install -r requirements.txt && flask init-db"
-    startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 60
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 60 --preload
     healthCheckPath: /login
     envVars:
       - key: SECRET_KEY
-        generateValue: true          # Render gera automaticamente
+        generateValue: true
       - key: DATABASE_URL
         fromDatabase:
           name: ctm-cabapua-db
           property: connectionString
+      - key: FLASK_ENV
+        value: production
       - key: SURVEYHEART_API_TOKEN
-        value: ""                    # Preencha no painel Render
+        value: ""
       - key: GOOGLE_CLIENT_ID
-        value: ""                    # Preencha no painel Render
+        value: ""
       - key: GOOGLE_CLIENT_SECRET
-        value: ""                    # Preencha no painel Render
-      - key: PYTHON_VERSION
-        value: "3.11.0"
+        value: ""
 
 databases:
   - name: ctm-cabapua-db

@@ -526,11 +526,17 @@ def init_db_command():
     criar_usuario_admin()
     click.echo('Banco de dados inicializado!')
 
-if __name__ == '__main__':
+# ── Inicialização automática do banco ──────────────────────────
+# Roda sempre que o módulo é importado (gunicorn, flask run, python app.py).
+# O try/except evita crash se DATABASE_URL ainda não estiver disponível.
+try:
     with app.app_context():
         db.create_all()
         criar_usuario_admin()
+except Exception as _e:
+    print(f'[AVISO] Não foi possível inicializar o banco agora: {_e}')
 
+if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('FLASK_ENV', 'production') == 'development'
     app.run(host='0.0.0.0', port=port, debug=debug)

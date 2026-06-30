@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Editar' if aluno else 'Novo' }} Aluno - CTM Cabapua</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">CTM Cabapua</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-item nav-link" href="{{ url_for('alunos') }}">Voltar</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <h2>{{ 'Editar' if aluno else 'Novo' }} Aluno</h2>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nome *</label>
+                            <input type="text" name="nome" class="form-control" required value="{{ aluno.nome if aluno else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ aluno.email if aluno else '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="telefone" class="form-control" value="{{ aluno.telefone if aluno else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data de Nascimento</label>
+                            <input type="date" name="data_nascimento" class="form-control" value="{{ aluno.data_nascimento.strftime('%Y-%m-%d') if aluno and aluno.data_nascimento else '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo de Aluno *</label>
+                            <select name="tipo_aluno" class="form-select" required>
+                                <option value="particular" {% if aluno and aluno.tipo_aluno == 'particular' %}selected{% endif %}>Particular</option>
+                                <option value="totalpass" {% if aluno and aluno.tipo_aluno == 'totalpass' %}selected{% endif %}>TotalPass</option>
+                                <option value="wellhub" {% if aluno and aluno.tipo_aluno == 'wellhub' %}selected{% endif %}>Wellhub</option>
+                                <option value="gurupass" {% if aluno and aluno.tipo_aluno == 'gurupass' %}selected{% endif %}>GuruPass</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Matricula no App</label>
+                            <input type="text" name="matricula_app" class="form-control" value="{{ aluno.matricula_app if aluno else '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Modalidade</label>
+                            <select name="modalidade" class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="Capoeira" {% if aluno and aluno.modalidade == 'Capoeira' %}selected{% endif %}>Capoeira</option>
+                                <option value="Muay Thai" {% if aluno and aluno.modalidade == 'Muay Thai' %}selected{% endif %}>Muay Thai</option>
+                                <option value="Jiu-Jitsu" {% if aluno and aluno.modalidade == 'Jiu-Jitsu' %}selected{% endif %}>Jiu-Jitsu</option>
+                                <option value="Hapkido" {% if aluno and aluno.modalidade == 'Hapkido' %}selected{% endif %}>Hapkido</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Graduacao</label>
+                            <input type="text" name="graduacao" class="form-control" value="{{ aluno.graduacao if aluno else '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Plano</label>
+                            <input type="text" name="plano" class="form-control" value="{{ aluno.plano if aluno else '' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor (R$)</label>
+                            <input type="number" step="0.01" name="valor" class="form-control" value="{{ aluno.valor if aluno else '0' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Vencimento</label>
+                            <input type="date" name="vencimento" class="form-control" value="{{ aluno.vencimento.strftime('%Y-%m-%d') if aluno and aluno.vencimento else '' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Validade Plano App</label>
+                            <input type="date" name="validade_plano_app" class="form-control" value="{{ aluno.validade_plano_app.strftime('%Y-%m-%d') if aluno and aluno.validade_plano_app else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="ativo" {% if aluno and aluno.status == 'ativo' %}selected{% endif %}>Ativo</option>
+                                <option value="inadimplente" {% if aluno and aluno.status == 'inadimplente' %}selected{% endif %}>Inadimplente</option>
+                                <option value="cancelado" {% if aluno and aluno.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-success">Salvar</button>
+                        <a href="{{ url_for('alunos') }}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

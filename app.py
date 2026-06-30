@@ -27,7 +27,13 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'sua-chave-secreta-aqui')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///ctm_cabapua.db')
+
+# Render fornece DATABASE_URL com prefixo 'postgres://' (legado);
+# SQLAlchemy 1.4+ exige 'postgresql://' — corrigimos aqui.
+_db_url = os.getenv('DATABASE_URL', 'sqlite:///ctm_cabapua.db')
+if _db_url.startswith('postgres://'):
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -509,9 +515,22 @@ def criar_usuario_admin():
         db.session.commit()
         print('Usuario admin criado: admin / admin123')
 
+# Comando CLI: flask init-db
+# Usado no Render como "Build Command" ou job único.
+import click
+
+@app.cli.command('init-db')
+def init_db_command():
+    """Cria tabelas e usuário admin padrão."""
+    db.create_all()
+    criar_usuario_admin()
+    click.echo('Banco de dados inicializado!')
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         criar_usuario_admin()
-    
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+    port = int(os.getenv('PORT', 5000))
+    debug = os.getenv('FLASK_ENV', 'production') == 'development'
+    app.run(host='0.0.0.0', port=port, debug=debug)

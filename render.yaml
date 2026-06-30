@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: ctm-cabapua
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r requirements.txt && flask init-db"
+    startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 60
+    healthCheckPath: /login
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true          # Render gera automaticamente
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ctm-cabapua-db
+          property: connectionString
+      - key: SURVEYHEART_API_TOKEN
+        value: ""                    # Preencha no painel Render
+      - key: GOOGLE_CLIENT_ID
+        value: ""                    # Preencha no painel Render
+      - key: GOOGLE_CLIENT_SECRET
+        value: ""                    # Preencha no painel Render
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+databases:
+  - name: ctm-cabapua-db
+    plan: free
+    region: oregon
+    databaseName: ctm_cabapua
+    user: ctm_admin

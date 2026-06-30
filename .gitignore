@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# Variáveis de ambiente (NUNCA versionar!)
+.env
+.env.local
+.env.production
+
+# Banco de dados local
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Google OAuth (tokens locais)
+token.pickle
+credentials.json
+
+# Logs
+*.log
+logs/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Netlify (não usamos mais)
+.netlify/

@@ -3,56 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Importar SurveyHeart - CTM Cabapua</title>
+    <title>Importar SurveyHeart - CTM Cabapuã</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">CTM Cabapua</a>
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-item nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
             </div>
         </div>
     </nav>
-    
     <div class="container mt-4">
-        <h2>Importar do SurveyHeart</h2>
-        
+        <h2><i class="fas fa-download"></i> Importar do SurveyHeart</h2>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
-                    {{ message }}
-                </div>
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }}">{{ message }}</div>
             {% endfor %}
         {% endwith %}
-        
         <div class="card">
             <div class="card-body">
                 <div class="alert alert-info">
-                    <strong>Instrucoes:</strong>
+                    <strong>Instruções:</strong>
                     <ol class="mb-0">
-                        <li>Cole o token de API do SurveyHeart (obtido em Settings > API)</li>
-                        <li>Informe o ID do formulario</li>
-                        <li>Mapeie os campos do formulario para os campos do sistema</li>
+                        <li>Cole o token de API do SurveyHeart (Settings > API)</li>
+                        <li>Informe o ID do formulário</li>
+                        <li>Mapeie os campos do formulário para os campos do sistema</li>
                     </ol>
                 </div>
-                
                 <form method="POST">
                     <div class="mb-3">
                         <label class="form-label">Token de API *</label>
                         <input type="text" name="api_token" class="form-control" required placeholder="Bearer token aqui">
                     </div>
-                    
                     <div class="mb-3">
-                        <label class="form-label">ID do Formulario *</label>
+                        <label class="form-label">ID do Formulário *</label>
                         <input type="text" name="form_id" class="form-control" required>
                     </div>
-                    
                     <hr>
                     <h5>Mapeamento de Campos</h5>
-                    <p class="text-muted">Informe o ID de cada campo no formulario do SurveyHeart</p>
-                    
+                    <p class="text-muted">Informe o ID de cada campo no formulário do SurveyHeart</p>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Campo Nome *</label>
@@ -63,7 +56,6 @@
                             <input type="text" name="field_email" class="form-control" placeholder="field_xxx">
                         </div>
                     </div>
-                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Campo Telefone</label>
@@ -74,13 +66,11 @@
                             <input type="text" name="field_nascimento" class="form-control" placeholder="field_xxx">
                         </div>
                     </div>
-                    
                     <div class="mb-3">
                         <label class="form-label">Campo Modalidade</label>
                         <input type="text" name="field_modalidade" class="form-control" placeholder="field_xxx">
                     </div>
-                    
-                    <button type="submit" class="btn btn-success">Importar</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-download"></i> Importar</button>
                     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
                 </form>
             </div>

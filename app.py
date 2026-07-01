@@ -77,6 +77,15 @@ class Aluno(db.Model):
     vencimento = db.Column(db.Date)
     status = db.Column(db.String(20), default='ativo')
     
+    # Dados de saúde
+    possui_condicao_saude = db.Column(db.Boolean, default=False)
+    condicoes_saude = db.Column(db.Text)
+    alergias = db.Column(db.Text)
+    medicamentos = db.Column(db.Text)
+    contato_emergencia = db.Column(db.String(200))
+    endereco = db.Column(db.String(300))
+    responsavel = db.Column(db.String(150))
+    
     calendar_event_id = db.Column(db.String(100))
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -97,6 +106,10 @@ class CheckIn(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
+
+# Blueprint WhatsApp (importado após modelos para evitar circularidade)
+from routes.whatsapp import whatsapp_bp
+app.register_blueprint(whatsapp_bp)
 
 # ============ INTEGRAÇÃO GOOGLE CALENDAR ============
 
@@ -286,15 +299,38 @@ def dashboard():
     
     mes_atual = datetime.now().month
     aniversariantes = Aluno.query.filter(
-        db.extract('month', Aluno.data_nascimento) == mes_atual
+        db.extract('month', Aluno.data_nascimento) == mes_atual,
+        Aluno.status == 'ativo'
     ).all()
+    
+    # Alunos com condicoes de saude
+    alunos_saude = Aluno.query.filter_by(possui_condicao_saude=True).count()
+    
+    # Dados para grafico de modalidades
+    modalidades = db.session.query(Aluno.modalidade, db.func.count(Aluno.id))\
+        .filter_by(status='ativo')\
+        .group_by(Aluno.modalidade).all()
+    modalidades_labels = [m[0] or 'Nao informada' for m in modalidades]
+    modalidades_data = [m[1] for m in modalidades]
+    
+    # Dados para grafico de tipos
+    tipos = db.session.query(Aluno.tipo_aluno, db.func.count(Aluno.id))\
+        .filter_by(status='ativo')\
+        .group_by(Aluno.tipo_aluno).all()
+    tipos_labels = [t[0].title() for t in tipos]
+    tipos_data = [t[1] for t in tipos]
     
     return render_template('dashboard.html',
                           total_alunos=total_alunos,
                           alunos_ativos=alunos_ativos,
                           checkins_hoje=checkins_hoje,
                           alunos_por_tipo=dict(alunos_por_tipo),
-                          aniversariantes=aniversariantes)
+                          aniversariantes=aniversariantes,
+                          alunos_saude=alunos_saude,
+                          modalidades_labels=modalidades_labels,
+                          modalidades_data=modalidades_data,
+                          tipos_labels=tipos_labels,
+                          tipos_data=tipos_data)
 
 @app.route('/alunos')
 @login_required
@@ -328,7 +364,14 @@ def novo_aluno():
             graduacao=request.form.get('graduacao'),
             plano=request.form.get('plano'),
             valor=float(request.form.get('valor', 0)),
-            status=request.form.get('status', 'ativo')
+            status=request.form.get('status', 'ativo'),
+            endereco=request.form.get('endereco'),
+            responsavel=request.form.get('responsavel'),
+            possui_condicao_saude=request.form.get('possui_condicao') == 'sim',
+            condicoes_saude=request.form.get('condicoes_saude'),
+            alergias=request.form.get('alergias'),
+            medicamentos=request.form.get('medicamentos'),
+            contato_emergencia=request.form.get('contato_emergencia')
         )
         
         if request.form.get('data_nascimento'):
@@ -367,6 +410,13 @@ def editar_aluno(id):
         aluno.plano = request.form.get('plano')
         aluno.valor = float(request.form.get('valor', 0))
         aluno.status = request.form.get('status', 'ativo')
+        aluno.endereco = request.form.get('endereco')
+        aluno.responsavel = request.form.get('responsavel')
+        aluno.possui_condicao_saude = request.form.get('possui_condicao') == 'sim'
+        aluno.condicoes_saude = request.form.get('condicoes_saude')
+        aluno.alergias = request.form.get('alergias')
+        aluno.medicamentos = request.form.get('medicamentos')
+        aluno.contato_emergencia = request.form.get('contato_emergencia')
         
         if request.form.get('data_nascimento'):
             aluno.data_nascimento = datetime.strptime(request.form['data_nascimento'], '%Y-%m-%d').date()
@@ -481,6 +531,39 @@ def importar_surveyheart():
         return redirect(url_for('alunos'))
     
     return render_template('surveyheart_import.html')
+
+@app.route('/trocar-senha', methods=['GET', 'POST'])
+@login_required
+def trocar_senha():
+    if request.method == 'POST':
+        senha_atual = request.form.get('senha_atual')
+        nova_senha = request.form.get('nova_senha')
+        confirmar_senha = request.form.get('confirmar_senha')
+        
+        if not current_user.check_password(senha_atual):
+            flash('Senha atual incorreta!', 'error')
+            return render_template('trocar_senha.html')
+        
+        if nova_senha != confirmar_senha:
+            flash('As novas senhas não conferem!', 'error')
+            return render_template('trocar_senha.html')
+        
+        if len(nova_senha) < 8:
+            flash('A nova senha deve ter pelo menos 8 caracteres!', 'error')
+            return render_template('trocar_senha.html')
+        
+        current_user.set_password(nova_senha)
+        db.session.commit()
+        flash('Senha alterada com sucesso!', 'success')
+        return redirect(url_for('dashboard'))
+    
+    return render_template('trocar_senha.html')
+
+@app.route('/alunos/saude')
+@login_required
+def alunos_saude():
+    alunos_lista = Aluno.query.filter_by(possui_condicao_saude=True).order_by(Aluno.nome).all()
+    return render_template('alunos_saude.html', alunos=alunos_lista)
 
 @app.route('/relatorios')
 @login_required

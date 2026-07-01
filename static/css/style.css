@@ -1,0 +1,157 @@
+/* CTM Cabapuã - Dark Premium Theme */
+:root {
+    --primary: #e94560;
+    --secondary: #16213e;
+    --dark: #1a1a2e;
+    --light: #ffffff;
+    --muted: #a0a0a0;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #dc2626;
+    --info: #2563eb;
+    --radius: 12px;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+body {
+    background: linear-gradient(135deg, var(--dark) 0%, var(--secondary) 100%);
+    color: var(--light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+}
+
+.navbar {
+    background: rgba(26, 26, 46, 0.95) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+    border-bottom: 1px solid rgba(233, 69, 96, 0.2);
+}
+
+.navbar-brand, .navbar .nav-link {
+    color: var(--light) !important;
+}
+
+.navbar-brand { color: var(--primary) !important; font-weight: bold; font-size: 1.5rem; }
+.nav-link:hover { color: var(--primary) !important; }
+
+.card {
+    background: rgba(22, 33, 62, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(233, 69, 96, 0.2);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+.card:hover { transform: translateY(-5px); box-shadow: 0 8px 16px rgba(233, 69, 96, 0.3); }
+.card-header {
+    background: rgba(233, 69, 96, 0.1);
+    border-bottom: 1px solid rgba(233, 69, 96, 0.2);
+    font-weight: bold;
+}
+
+.btn-primary { background: var(--primary); border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; transition: all 0.3s; }
+.btn-primary:hover { background: #c13651; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4); }
+.btn-success { background: var(--success); border: none; border-radius: 8px; }
+.btn-success:hover { background: #15803d; }
+.btn-warning { background: var(--warning); border: none; border-radius: 8px; color: #000; }
+.btn-danger { background: var(--danger); border: none; border-radius: 8px; }
+.btn-info { background: var(--info); border: none; border-radius: 8px; color: #fff; }
+
+.form-control, .form-select {
+    background: rgba(26, 26, 46, 0.6);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    color: var(--light);
+    border-radius: 8px;
+    padding: 10px 15px;
+}
+.form-control:focus, .form-select:focus {
+    background: rgba(26, 26, 46, 0.8);
+    border-color: var(--primary);
+    color: var(--light);
+    box-shadow: 0 0 0 0.2rem rgba(233, 69, 96, 0.25);
+}
+.form-control::placeholder { color: var(--muted); }
+.form-label { color: var(--light); font-weight: 500; }
+
+.table { color: var(--light); }
+.table thead th {
+    background: rgba(233, 69, 96, 0.1);
+    border-bottom: 2px solid var(--primary);
+    color: var(--primary);
+}
+.table tbody tr { border-bottom: 1px solid rgba(233, 69, 96, 0.1); transition: background 0.2s; }
+.table tbody tr:hover { background: rgba(233, 69, 96, 0.05); }
+
+.badge { border-radius: 6px; padding: 6px 12px; font-weight: 500; }
+
+.alert { border-radius: var(--radius); border: none; backdrop-filter: blur(10px); }
+.alert-success { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.3); }
+.alert-danger { background: rgba(220, 38, 38, 0.2); color: #f87171; border: 1px solid rgba(220, 38, 38, 0.3); }
+.alert-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.alert-info { background: rgba(37, 99, 235, 0.2); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); }
+
+.list-group-item {
+    background: rgba(22, 33, 62, 0.6);
+    border: 1px solid rgba(233, 69, 96, 0.15);
+    color: var(--light);
+}
+
+.whatsapp-btn {
+    background: #25D366;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    transition: all 0.3s;
+}
+.whatsapp-btn:hover { background: #128C7E; color: white; transform: translateY(-2px); }
+
+.login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.login-card {
+    background: rgba(22, 33, 62, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    max-width: 450px;
+    width: 100%;
+    border: 1px solid rgba(233, 69, 96, 0.3);
+}
+.login-card h1 { color: var(--primary); text-align: center; font-weight: bold; }
+
+.stats-card {
+    background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(22, 33, 62, 0.8) 100%);
+    border-radius: var(--radius);
+    padding: 25px;
+    text-align: center;
+    transition: all 0.3s;
+}
+.stats-card:hover { transform: scale(1.05); }
+.stats-card h2 { font-size: 2.5rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
+.stats-card p { color: var(--muted); margin: 0; }
+
+.health-flag {
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 4px 10px;
+    display: inline-block;
+    font-size: 0.8rem;
+    color: #f87171;
+}
+
+.fade-in { animation: fadeIn 0.5s ease-out; }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--dark); }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #c13651; }
+
+@media (max-width: 768px) {
+    .stats-card h2 { font-size: 2rem; }
+    .card { margin-bottom: 15px; }
+}

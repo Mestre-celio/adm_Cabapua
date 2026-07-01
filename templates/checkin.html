@@ -3,30 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check-in - CTM Cabapua</title>
+    <title>Check-in - CTM Cabapuã</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">CTM Cabapua</a>
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-item nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
             </div>
         </div>
     </nav>
-    
     <div class="container mt-4">
         <h2>Registrar Check-in</h2>
-        
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'success' }}">
-                    {{ message }}
-                </div>
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'success' }}">{{ message }}</div>
             {% endfor %}
         {% endwith %}
-        
         <div class="card">
             <div class="card-body">
                 <form method="POST">
@@ -39,17 +36,14 @@
                             <option value="presencial">Presencial</option>
                         </select>
                     </div>
-                    
                     <div class="mb-3">
-                        <label class="form-label">Matricula do App *</label>
-                        <input type="text" name="matricula_app" class="form-control" required placeholder="Digite o numero da matricula">
+                        <label class="form-label">Matrícula do App *</label>
+                        <input type="text" name="matricula_app" class="form-control" required placeholder="Digite o número da matrícula">
                     </div>
-                    
                     <div class="mb-3">
-                        <label class="form-label">Codigo de Verificacao (opcional)</label>
-                        <input type="text" name="codigo" class="form-control" placeholder="Codigo fornecido pelo app">
+                        <label class="form-label">Código de Verificação (opcional)</label>
+                        <input type="text" name="codigo" class="form-control" placeholder="Código fornecido pelo app">
                     </div>
-                    
                     <button type="submit" class="btn btn-success">Registrar Check-in</button>
                     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
                 </form>

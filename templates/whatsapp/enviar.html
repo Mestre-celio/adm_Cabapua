@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar WhatsApp - {{ aluno.nome }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #0f0c29; color: #f0f0f5; min-height: 100vh; }
+        .navbar { background: rgba(15,12,41,0.98) !important; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .card { background: rgba(30,27,58,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
+        .card-header { background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; }
+        .form-control, .form-select {
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
+            color: #f0f0f5; border-radius: 8px;
+        }
+        .form-control:focus { background: rgba(255,255,255,0.1); border-color: #25d366; box-shadow: 0 0 0 3px rgba(37,211,102,.2); color: #f0f0f5; }
+        textarea.form-control { min-height: 160px; font-size: .95rem; line-height: 1.6; }
+        .template-btn {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+            color: #f0f0f5; border-radius: 8px; padding: 10px 14px; text-align: left;
+            cursor: pointer; transition: all .2s; width: 100%; font-size: .85rem;
+        }
+        .template-btn:hover { background: rgba(37,211,102,.15); border-color: rgba(37,211,102,.4); color: #fff; }
+        .template-btn .template-icon { font-size: 1.2rem; margin-right: 8px; }
+        .btn-send { background: #25d366; color: #fff; border: none; border-radius: 10px; padding: 14px 32px; font-size: 1rem; font-weight: 600; }
+        .btn-send:hover { background: #1ebe57; color: #fff; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(37,211,102,.4); }
+        .aluno-card { background: linear-gradient(135deg, rgba(7,94,84,.5), rgba(18,140,126,.3)); border: 1px solid rgba(37,211,102,.3); border-radius: 14px; padding: 18px; }
+        .preview-box { background: rgba(0,0,0,.3); border-radius: 12px; padding: 16px; font-size: .9rem; line-height: 1.7; white-space: pre-wrap; min-height: 80px; border: 1px solid rgba(255,255,255,.08); }
+        .char-count { font-size: .78rem; color: #9896b5; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
+        <div class="navbar-nav ms-auto d-flex flex-row gap-2">
+            <a class="nav-link" href="{{ url_for('whatsapp.central') }}"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+            <a class="nav-link" href="{{ url_for('alunos') }}"><i class="fas fa-users"></i> Alunos</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4" style="max-width:800px;">
+    <!-- Info do aluno -->
+    <div class="aluno-card mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div style="font-size:2.5rem;">👤</div>
+            <div>
+                <h4 class="mb-0 fw-bold">{{ aluno.nome }}</h4>
+                <div class="d-flex gap-3 mt-1 flex-wrap">
+                    {% if aluno.telefone %}
+                    <span class="small"><i class="fab fa-whatsapp text-success"></i> {{ aluno.telefone }}</span>
+                    {% endif %}
+                    {% if aluno.modalidade %}
+                    <span class="small"><i class="fas fa-dumbbell text-info"></i> {{ aluno.modalidade }}</span>
+                    {% endif %}
+                    <span class="small">
+                        <span class="badge bg-{{ 'success' if aluno.status == 'ativo' else 'danger' }}">
+                            {{ aluno.status|upper }}
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Templates prontos -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="fas fa-magic text-warning"></i> Templates Prontos
+                </div>
+                <div class="card-body d-flex flex-column gap-2">
+                    {% set template_icons = {
+                        'boas_vindas': ('🥋', 'Boas-vindas'),
+                        'aniversario': ('🎂', 'Aniversário'),
+                        'cobranca':    ('💳', 'Cobrança'),
+                        'vencido':     ('⚠️', 'Pagamento Vencido'),
+                        'falta':       ('😊', 'Sentimos Falta'),
+                        'checkin':     ('✅', 'Check-in')
+                    } %}
+                    {% for key, (icon, label) in template_icons.items() %}
+                    <button type="button" class="template-btn" onclick="carregarTemplate('{{ key }}')">
+                        <span class="template-icon">{{ icon }}</span>{{ label }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Editor de mensagem -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span><i class="fab fa-whatsapp text-success"></i> Mensagem</span>
+                    <span class="char-count" id="char-count">0 caracteres</span>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="form-enviar">
+                        <div class="mb-3">
+                            <textarea class="form-control" name="mensagem" id="mensagem"
+                                      placeholder="Digite ou selecione um template ao lado..."
+                                      oninput="atualizarContador()"></textarea>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">📱 Pré-visualização</label>
+                            <div class="preview-box" id="preview">Selecione um template ou comece a digitar...</div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-between align-items-center">
+                            <a href="{{ url_for('alunos') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </a>
+                            {% if aluno.telefone %}
+                            <button type="submit" class="btn-send">
+                                <i class="fab fa-whatsapp"></i> Abrir no WhatsApp
+                            </button>
+                            {% else %}
+                            <span class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Telefone não cadastrado</span>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const templates = {{ templates | tojson }};
+
+    function carregarTemplate(key) {
+        const ta = document.getElementById('mensagem');
+        ta.value = templates[key] || '';
+        atualizarContador();
+        ta.focus();
+    }
+
+    function atualizarContador() {
+        const ta = document.getElementById('mensagem');
+        const prev = document.getElementById('preview');
+        const count = document.getElementById('char-count');
+        const txt = ta.value;
+        count.textContent = txt.length + ' caracteres';
+        prev.textContent = txt || 'Selecione um template ou comece a digitar...';
+    }
+
+    // Confirma antes de abrir o WhatsApp
+    document.getElementById('form-enviar').addEventListener('submit', function(e) {
+        const msg = document.getElementById('mensagem').value.trim();
+        if (!msg) {
+            e.preventDefault();
+            alert('Digite ou selecione uma mensagem antes de enviar.');
+            return;
+        }
+    });
+</script>
+</body>
+</html>

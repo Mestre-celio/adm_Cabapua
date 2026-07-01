@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aniversariantes - CTM Cabapuã</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #0f0c29; color: #f0f0f5; min-height: 100vh; }
+        .navbar { background: rgba(15,12,41,0.98) !important; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .card { background: rgba(30,27,58,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; }
+        .card-header { background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; }
+        .form-select { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); color: #f0f0f5; border-radius: 8px; }
+        .form-select option { background: #1e1b3a; }
+        .aniv-card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,100,100,.2); border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; transition: all .2s; }
+        .aniv-card:hover { border-color: rgba(37,211,102,.4); background: rgba(37,211,102,.05); transform: translateX(4px); }
+        .dia-badge { background: linear-gradient(135deg, #b71c1c, #c62828); color: #fff; border-radius: 10px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; flex-shrink: 0; }
+        .btn-wpp-sm { background: #25d366; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: .85rem; font-weight: 600; white-space: nowrap; text-decoration: none; transition: all .2s; }
+        .btn-wpp-sm:hover { background: #1ebe57; color: #fff; transform: translateY(-1px); }
+        .month-btn { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #f0f0f5; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: .85rem; transition: all .2s; text-decoration: none; }
+        .month-btn:hover, .month-btn.active { background: rgba(37,211,102,.2); border-color: rgba(37,211,102,.5); color: #25d366; }
+        .hero-box { background: linear-gradient(135deg, rgba(183,28,28,.4), rgba(198,40,40,.3)); border: 1px solid rgba(255,100,100,.3); border-radius: 16px; padding: 24px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
+        <div class="navbar-nav ms-auto d-flex flex-row gap-2">
+            <a class="nav-link" href="{{ url_for('whatsapp.central') }}"><i class="fab fa-whatsapp"></i> Central</a>
+            <a class="nav-link" href="{{ url_for('alunos') }}"><i class="fas fa-users"></i> Alunos</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="hero-box mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div style="font-size:3rem;">🎂</div>
+            <div>
+                <h2 class="mb-1 fw-bold">Aniversariantes — {{ mes_nome }}</h2>
+                <p class="mb-0 opacity-75">{{ links|length }} aluno(s) fazem aniversário este mês</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seletor de mês -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        {% for i, nome_mes in enumerate(meses, 1) %}
+        <a href="{{ url_for('whatsapp.aniversariantes') }}?mes={{ i }}"
+           class="month-btn {{ 'active' if i == mes else '' }}">
+            {{ nome_mes[:3] }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if links %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted small">{{ links|length }} aniversariante(s) em {{ mes_nome }}</span>
+        <button class="btn btn-sm" style="background:rgba(37,211,102,.2);color:#25d366;border:1px solid rgba(37,211,102,.4);"
+                onclick="abrirTodos()">
+            <i class="fab fa-whatsapp"></i> Parabenizar Todos
+        </button>
+    </div>
+
+    <div class="d-flex flex-column gap-2">
+        {% for item in links %}
+        <div class="aniv-card">
+            <div class="dia-badge">{{ item.dia }}</div>
+            <div class="flex-grow-1">
+                <div class="fw-semibold">{{ item.aluno.nome }}</div>
+                <div class="small text-muted">
+                    {% if item.aluno.data_nascimento %}
+                    🎂 {{ item.aluno.data_nascimento.strftime('%d/%m/%Y') }}
+                    {% endif %}
+                    {% if item.aluno.modalidade %}
+                    · <i class="fas fa-dumbbell"></i> {{ item.aluno.modalidade }}
+                    {% endif %}
+                    {% if item.aluno.telefone %}
+                    · <i class="fab fa-whatsapp text-success"></i> {{ item.aluno.telefone }}
+                    {% endif %}
+                </div>
+            </div>
+            {% if item.url != '#' %}
+            <a href="{{ item.url }}" target="_blank" class="btn-wpp-sm">
+                <i class="fab fa-whatsapp"></i> Parabenizar
+            </a>
+            {% else %}
+            <span class="small text-muted">Sem telefone</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        const urls = [{% for item in links %}{% if item.url != '#' %}"{{ item.url }}"{% if not loop.last %},{% endif %}{% endif %}{% endfor %}];
+        let idx = 0;
+        function abrirTodos() {
+            if (idx < urls.length) {
+                window.open(urls[idx], '_blank');
+                idx++;
+                if (idx < urls.length) setTimeout(abrirTodos, 1500);
+            }
+        }
+    </script>
+
+    {% else %}
+    <div class="card text-center p-5">
+        <div style="font-size:4rem; opacity:.3;">🎂</div>
+        <p class="text-muted mt-3">Nenhum aniversariante em <strong>{{ mes_nome }}</strong>.</p>
+        <p class="text-muted small">Selecione outro mês acima.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

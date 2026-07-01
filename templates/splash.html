@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTM Cabapuã Brasil</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/metal.css') }}">
+</head>
+<body>
+    <div class="rings">
+        <div class="ring"></div>
+        <div class="ring"></div>
+        <div class="ring"></div>
+    </div>
+    <div class="splash-container">
+        <div class="splash-logo">
+            <div class="shield">
+                <i class="fas fa-fist-raised shield-icon"></i>
+            </div>
+            <h1 class="splash-title">CTM Cabapuã</h1>
+            <p class="splash-subtitle">Brasil</p>
+        </div>
+        <a href="{{ url_for('login') }}" class="splash-btn">
+            <i class="fas fa-sign-in-alt"></i> Acessar Sistema
+        </a>
+    </div>
+    <p class="splash-footer" style="position:fixed;bottom:20px;left:0;right:0;text-align:center;color:rgba(255,255,255,0.3);font-size:0.8rem;">
+        &copy; 2024 CTM Cabapuã Brasil
+    </p>
+</body>
+</html>

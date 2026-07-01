@@ -10,6 +10,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 from datetime import datetime, date, timedelta
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -39,6 +40,15 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.nivel != 'admin':
+            flash('Acesso restrito a administradores!', 'error')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # ============ MODELOS DO BANCO DE DADOS ============
 
@@ -134,6 +144,9 @@ app.register_blueprint(whatsapp_bp)
 # Blueprint Pagamentos
 from routes.pagamentos import pagamentos_bp
 app.register_blueprint(pagamentos_bp)
+
+from routes.google_sheets import google_sheets_bp
+app.register_blueprint(google_sheets_bp)
 
 # ============ INTEGRAÇÃO GOOGLE CALENDAR ============
 
@@ -285,17 +298,23 @@ class SurveyHeartAPI:
 @app.route('/')
 def index():
     if current_user.is_authenticated:
+        if current_user.nivel == 'professor':
+            return redirect(url_for('professor_dashboard'))
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    return render_template('splash.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        nivel_solicitado = request.form.get('nivel', 'admin')
         user = Usuario.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
+            if user.nivel != nivel_solicitado:
+                flash(f'Usuário não possui permissão de acesso como {nivel_solicitado}!', 'error')
+                return render_template('login.html', google_enabled=bool(os.getenv('GOOGLE_CLIENT_ID')))
             login_user(user)
             if user.primeiro_acesso:
                 flash('Por segurança, altere sua senha agora!', 'warning')
@@ -374,9 +393,26 @@ def auth_google_callback():
     flash('Login com Google realizado!', 'success')
     return redirect(url_for('dashboard'))
 
+@app.route('/professor/dashboard')
+@login_required
+def professor_dashboard():
+    total_alunos = Aluno.query.count()
+    alunos_ativos = Aluno.query.filter_by(status='ativo').count()
+    checkins_hoje = CheckIn.query.filter(
+        CheckIn.data_checkin >= date.today()
+    ).count()
+    alunos_saude = Aluno.query.filter_by(possui_condicao_saude=True).count()
+    return render_template('professor_dashboard.html',
+                          total_alunos=total_alunos,
+                          alunos_ativos=alunos_ativos,
+                          checkins_hoje=checkins_hoje,
+                          alunos_saude=alunos_saude)
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    if current_user.nivel == 'professor':
+        return redirect(url_for('professor_dashboard'))
     total_alunos = Aluno.query.count()
     alunos_ativos = Aluno.query.filter_by(status='ativo').count()
     checkins_hoje = CheckIn.query.filter(
@@ -694,6 +730,19 @@ def criar_usuario_admin():
         db.session.add(admin)
         db.session.commit()
         print('Usuario admin criado: admin / admin123')
+
+    if not Usuario.query.filter_by(username='professor').first():
+        professor = Usuario(
+            username='professor',
+            nome='Professor',
+            nivel='professor',
+            email='professor@ctmcabapua.com.br'
+        )
+        professor.set_password('prof123')
+        professor.primeiro_acesso = True
+        db.session.add(professor)
+        db.session.commit()
+        print('Usuario professor criado: professor / prof123')
 
 # Comando CLI: flask init-db
 # Usado no Render como "Build Command" ou job único.

@@ -14,7 +14,7 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
             <div class="navbar-nav ms-auto">
-                <span class="nav-link text-light"><i class="fas fa-user"></i> {{ current_user.nome }}</span>
+                <span class="nav-link text-light"><i class="fas fa-user"></i> {{ current_user.nome }} <span class="badge bg-{{ 'danger' if current_user.nivel == 'admin' else 'warning' }}">{{ current_user.nivel|upper }}</span></span>
                 <a class="nav-link" href="{{ url_for('trocar_senha') }}"><i class="fas fa-key"></i> Senha</a>
                 <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Sair</a>
             </div>
@@ -124,11 +124,14 @@
                 <div class="card">
                     <div class="card-header"><i class="fas fa-bolt"></i> Ações Rápidas</div>
                     <div class="card-body">
-                        <a href="{{ url_for('alunos') }}" class="btn btn-primary me-2"><i class="fas fa-users"></i> Ver Alunos</a>
-                        <a href="{{ url_for('novo_aluno') }}" class="btn btn-success me-2"><i class="fas fa-plus"></i> Novo Aluno</a>
-                        <a href="{{ url_for('registrar_checkin') }}" class="btn btn-info me-2"><i class="fas fa-check-circle"></i> Check-in</a>
-                        <a href="{{ url_for('whatsapp.central') }}" class="btn whatsapp-btn me-2"><i class="fab fa-whatsapp"></i> WhatsApp</a>
-                        <a href="{{ url_for('relatorios') }}" class="btn btn-secondary"><i class="fas fa-chart-bar"></i> Relatórios</a>
+                        <a href="{{ url_for('alunos') }}" class="btn btn-primary me-2 mb-2"><i class="fas fa-users"></i> Ver Alunos</a>
+                        <a href="{{ url_for('novo_aluno') }}" class="btn btn-success me-2 mb-2"><i class="fas fa-plus"></i> Novo Aluno</a>
+                        <a href="{{ url_for('registrar_checkin') }}" class="btn btn-info me-2 mb-2"><i class="fas fa-check-circle"></i> Check-in</a>
+                        <a href="{{ url_for('whatsapp.central') }}" class="btn whatsapp-btn me-2 mb-2"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                        <a href="{{ url_for('relatorios') }}" class="btn btn-secondary me-2 mb-2"><i class="fas fa-chart-bar"></i> Relatórios</a>
+                        {% if current_user.nivel == 'admin' %}
+                        <a href="{{ url_for('google_sheets.importar') }}" class="btn btn-outline-light me-2 mb-2"><i class="fab fa-google"></i> Google Sheets</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

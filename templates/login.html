@@ -7,6 +7,21 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .level-selector { display: flex; gap: 12px; margin-bottom: 20px; }
+        .level-card {
+            flex: 1; padding: 20px; text-align: center;
+            background: rgba(26, 26, 46, 0.6);
+            border: 2px solid rgba(233, 69, 96, 0.2);
+            border-radius: 12px; cursor: pointer;
+            transition: all 0.3s;
+        }
+        .level-card:hover { border-color: var(--primary); transform: translateY(-3px); }
+        .level-card.active { border-color: var(--primary); background: rgba(233, 69, 96, 0.15); }
+        .level-card i { font-size: 2rem; margin-bottom: 8px; display: block; }
+        .level-card small { color: var(--muted); display: block; margin-top: 4px; }
+        .level-card .level-name { font-weight: 700; font-size: 1.1rem; }
+    </style>
 </head>
 <body>
     <div class="login-container">
@@ -28,7 +43,20 @@
             </a>
             <div class="text-center my-3"><span class="text-muted">ou</span></div>
             {% endif %}
-            <form method="POST">
+            <form method="POST" id="loginForm">
+                <div class="level-selector">
+                    <div class="level-card active" data-level="admin" onclick="selectLevel(this)">
+                        <i class="fas fa-user-shield" style="color:#e94560;"></i>
+                        <span class="level-name">Admin</span>
+                        <small>Gestão completa</small>
+                    </div>
+                    <div class="level-card" data-level="professor" onclick="selectLevel(this)">
+                        <i class="fas fa-chalkboard-teacher" style="color:#f59e0b;"></i>
+                        <span class="level-name">Professor</span>
+                        <small>Painel do professor</small>
+                    </div>
+                </div>
+                <input type="hidden" name="nivel" id="nivelInput" value="admin">
                 <div class="mb-3">
                     <label class="form-label">Usuário</label>
                     <input type="text" name="username" class="form-control" required autofocus>
@@ -40,9 +68,16 @@
                 <button type="submit" class="btn btn-primary w-100"><i class="fas fa-sign-in-alt"></i> Entrar</button>
             </form>
             <div class="mt-3 text-center">
-                <small class="text-muted">Primeiro acesso? <strong>admin</strong> / <strong>admin123</strong></small>
+                <small class="text-muted">Admin: <strong>admin</strong> / <strong>admin123</strong> | Professor: <strong>professor</strong> / <strong>prof123</strong></small>
             </div>
         </div>
     </div>
+    <script>
+        function selectLevel(el) {
+            document.querySelectorAll('.level-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('nivelInput').value = el.dataset.level;
+        }
+    </script>
 </body>
 </html>

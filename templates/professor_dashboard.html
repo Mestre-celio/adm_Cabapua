@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Professor - CTM Cabapuã</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('professor_dashboard') }}">🥋 CTM Cabapuã</a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-link text-light"><i class="fas fa-chalkboard-teacher"></i> {{ current_user.nome }}</span>
+                <a class="nav-link" href="{{ url_for('trocar_senha') }}"><i class="fas fa-key"></i> Senha</a>
+                <a class="nav-link" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Sair</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} fade-in">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h2 class="mb-4 fade-in"><i class="fas fa-chalkboard-teacher"></i> Painel do Professor</h2>
+        <div class="row mb-4 fade-in">
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <i class="fas fa-users fa-2x text-info"></i>
+                    <h2>{{ total_alunos }}</h2>
+                    <p>Total de Alunos</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <i class="fas fa-user-check fa-2x text-success"></i>
+                    <h2>{{ alunos_ativos }}</h2>
+                    <p>Alunos Ativos</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stats-card">
+                    <i class="fas fa-calendar-check fa-2x text-info"></i>
+                    <h2>{{ checkins_hoje }}</h2>
+                    <p>Check-ins Hoje</p>
+                </div>
+            </div>
+        </div>
+        <div class="row fade-in">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-tasks"></i> Ações</div>
+                    <div class="card-body">
+                        <a href="{{ url_for('alunos') }}" class="btn btn-primary me-2 mb-2"><i class="fas fa-users"></i> Ver Alunos</a>
+                        <a href="{{ url_for('registrar_checkin') }}" class="btn btn-info me-2 mb-2"><i class="fas fa-check-circle"></i> Check-in</a>
+                        <a href="{{ url_for('relatorios') }}" class="btn btn-secondary me-2 mb-2"><i class="fas fa-chart-bar"></i> Relatórios</a>
+                        {% if alunos_saude > 0 %}
+                        <a href="{{ url_for('alunos_saude') }}" class="btn btn-danger me-2 mb-2"><i class="fas fa-heartbeat"></i> Alunos com Condições</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

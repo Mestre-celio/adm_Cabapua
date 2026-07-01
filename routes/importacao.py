@@ -1,25 +1,22 @@
 """
-Script de Importação — SurveyHeart → Banco de Dados CTM Cabapuã
-Lê o Excel exportado do SurveyHeart e cadastra os alunos no banco.
-
-Uso:
-    python importar_alunos_surveyheart.py
-    python importar_alunos_surveyheart.py --dry-run
-    python importar_alunos_surveyheart.py --arquivo CAMINHO
+Blueprint para importação de alunos via upload de Excel (SurveyHeart)
 """
-import sys, os, re, argparse
+import os, re
 from datetime import datetime, date
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-try:
-    import pandas as pd
-except ImportError:
-    print("[ERRO] pandas não instalado. Execute: pip install pandas openpyxl")
-    sys.exit(1)
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+import pandas as pd
 
-from app import app, db, Aluno
+from app import db, Aluno
 
-# Mapeamento real do Excel (colunas 0-1 são S.NO e Submitted Time)
+importacao_bp = Blueprint('importacao', __name__)
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Mapeamento real do Excel exportado do SurveyHeart
 C = {
     'nome':       '1. Nome completo',
     'nascimento': '2. Data de nascimento',
@@ -58,38 +55,22 @@ def _data(raw):
         except ValueError: continue
     return None
 
-def _idade(dt):
-    if not dt: return None
-    hoje = date.today()
-    return hoje.year - dt.year - ((hoje.month, hoje.day) < (dt.month, dt.day))
-
 def _saude(row):
     cond, aler, medi = [], [], []
-
     v = _limpar(row.get(C['vicios'], ''))
     if v and v.lower() not in ('não possuo vícios', 'nao', 'não', 'n'):
         if any(w in v.lower() for w in ('cigarro', 'tabag')): cond.append('Tabagista')
         if any(w in v.lower() for w in ('álcool', 'alcool')): cond.append('Etilista')
         if any(w in v.lower() for w in ('insulina', 'medicamento', 'humalog', 'bombinha')): medi.append(v)
-
     c = _limpar(row.get(C['cirurgias'], ''))
     if c and c.lower() not in ('não', 'nao', 'não.', 'nenhuma', 'n'): cond.append(f'Cirurgia: {c}')
-
     p = _limpar(row.get(C['problemas'], ''))
     if p and p.lower() not in ('não', 'nao', 'não.', 'nenhum', 'n'):
-        lst = aler if 'alerg' in p.lower() else medi if any(w in p.lower() for w in ('insulina', 'humalog')) else cond
-        lst.append(p)
-
+        (aler if 'alerg' in p.lower() else medi if any(w in p.lower() for w in ('insulina', 'humalog')) else cond).append(p)
     o = _limpar(row.get(C['obs_saude'], ''))
     if o and o.lower() not in ('não', 'nao', 'não.', 'nenhum', 'n'):
         (aler if 'alerg' in o.lower() else cond).append(o)
-
-    return {
-        'possui_condicao': len(cond) > 0,
-        'condicoes': ' | '.join(cond),
-        'alergias': ' | '.join(aler),
-        'medicamentos': ' | '.join(medi),
-    }
+    return {'possui_condicao': len(cond) > 0, 'condicoes': ' | '.join(cond), 'alergias': ' | '.join(aler), 'medicamentos': ' | '.join(medi)}
 
 def _tipo(apps_str):
     s = _limpar(apps_str).lower()
@@ -104,40 +85,56 @@ def _venc(pagamento_str):
         if d in s: return int(d)
     return 5
 
-def importar(arquivo=None, dry_run=False):
-    if not arquivo:
-        for d in [os.path.expanduser('~/Downloads'), '.']:
-            cand = [f for f in os.listdir(d) if f.startswith('Anamnese') and f.endswith('.xlsx')]
-            if cand:
-                arquivo = os.path.join(d, sorted(cand)[-1])
-                break
-    if not arquivo or not os.path.exists(arquivo):
-        print("[ERRO] Arquivo não encontrado. Use --arquivo CAMINHO")
-        sys.exit(1)
 
-    print(f"[OK] Lendo: {arquivo}")
-    df = pd.read_excel(arquivo)
-    print(f"[INFO] {len(df)} registros\n")
+@importacao_bp.route('/importar', methods=['GET', 'POST'])
+@login_required
+def importar_excel():
+    if current_user.nivel != 'admin':
+        flash('Apenas administradores podem importar dados!', 'error')
+        return redirect(url_for('dashboard'))
 
-    stats = {'importados': 0, 'atualizados': 0, 'erros': 0, 'sem_nome': 0, 'menores': 0, 'com_saude': 0}
-    hoje = date.today()
+    if request.method == 'POST':
+        if 'arquivo' not in request.files:
+            flash('Nenhum arquivo enviado!', 'error')
+            return redirect(request.url)
 
-    with app.app_context():
-        db.create_all()
+        arquivo = request.files['arquivo']
+        if arquivo.filename == '':
+            flash('Nenhum arquivo selecionado!', 'error')
+            return redirect(request.url)
+
+        ext = arquivo.filename.rsplit('.', 1)[1].lower() if '.' in arquivo.filename else ''
+        if ext not in ALLOWED_EXTENSIONS:
+            flash('Formato não suportado. Use .xlsx ou .xls', 'error')
+            return redirect(request.url)
+
+        filepath = os.path.join(UPLOAD_FOLDER, 'upload_temp.xlsx')
+        arquivo.save(filepath)
+
+        try:
+            df = pd.read_excel(filepath)
+        except Exception as e:
+            os.remove(filepath)
+            flash(f'Erro ao ler o arquivo: {e}', 'error')
+            return redirect(request.url)
+
+        stats = {'importados': 0, 'atualizados': 0, 'erros': 0, 'menores': 0, 'com_saude': 0}
+        hoje = date.today()
+
         for idx, row in df.iterrows():
             try:
                 nome = _limpar(row.get(C['nome'], ''))
-                if not nome: stats['sem_nome'] += 1; continue
+                if not nome: continue
 
                 data_nasc = _data(row.get(C['nascimento']))
-                idade = _idade(data_nasc)
+                idade = (hoje - data_nasc).days // 365 if data_nasc else None
                 saude = _saude(row)
                 tipo_aluno = _tipo(row.get(C['apps'], ''))
                 venc_dia = _venc(row.get(C['pagamento'], ''))
                 try: vencimento = date(hoje.year, hoje.month, venc_dia)
                 except ValueError: vencimento = date(hoje.year, hoje.month, 5)
 
-                aluno_ex = Aluno.query.filter(db.func.lower(Aluno.nome) == nome.lower()).first()
+                aluno = Aluno.query.filter(db.func.lower(Aluno.nome) == nome.lower()).first()
 
                 dados = {
                     'email': _limpar(row.get(C['email'])),
@@ -156,60 +153,39 @@ def importar(arquivo=None, dry_run=False):
                     'medicamentos': saude['medicamentos'],
                 }
 
-                if aluno_ex:
+                if aluno:
                     for k, v in dados.items():
-                        if v: setattr(aluno_ex, k, v)
+                        if v: setattr(aluno, k, v)
                     stats['atualizados'] += 1
-                    continue
-
-                if dry_run:
-                    flags = []
-                    if saude['possui_condicao']: flags.append('SAUDE')
-                    if idade and idade < 18: flags.append('MENOR')
-                    tag = f" [{', '.join(flags)}]" if flags else ""
-                    print(f"  [DRY-RUN] {nome} | {dados['modalidade']} | {tipo_aluno}{tag}")
-                    stats['importados'] += 1
-                    continue
-
-                dados['nome'] = nome
-                try:
-                    dados['id_externo'] = f"SH_{int(row.get('S.NO', idx+1)):04d}"
-                except (ValueError, TypeError):
+                else:
+                    dados['nome'] = nome
                     dados['id_externo'] = f"SH_{idx+1:04d}"
-                dados['plano'] = 'Mensal'
-                dados['valor'] = 120.00 if tipo_aluno == 'particular' else 0.0
-                dados['status'] = 'ativo'
-                dados['data_matricula'] = hoje
-                db.session.add(Aluno(**dados))
-                stats['importados'] += 1
+                    dados['plano'] = 'Mensal'
+                    dados['valor'] = 120.00 if tipo_aluno == 'particular' else 0.0
+                    dados['status'] = 'ativo'
+                    dados['data_matricula'] = hoje
+                    db.session.add(Aluno(**dados))
+                    stats['importados'] += 1
 
                 if idade and idade < 18: stats['menores'] += 1
                 if saude['possui_condicao']: stats['com_saude'] += 1
 
-                print(f"  [OK] {nome} | {dados['modalidade']} | {tipo_aluno}")
             except Exception as e:
-                print(f"  [ERRO] Linha {idx+1}: {e}")
-                db.session.rollback()
                 stats['erros'] += 1
                 continue
 
-        if not dry_run and stats['importados'] > 0:
-            db.session.commit()
-            print(f"\n[SALVO] Dados gravados no banco.")
+        db.session.commit()
+        os.remove(filepath)
 
-    print("\n" + "=" * 50)
-    print(f"Importados   : {stats['importados']}")
-    print(f"Atualizados  : {stats['atualizados']}")
-    print(f"Sem nome     : {stats['sem_nome']}")
-    print(f"Erros        : {stats['erros']}")
-    print(f"Menores      : {stats['menores']}")
-    print(f"Com condição : {stats['com_saude']}")
-    print("=" * 50)
-    if dry_run: print("[INFO] Modo DRY-RUN — nenhum dado foi salvo.")
+        flash(
+            f'Importação concluída! '
+            f'{stats["importados"]} importados, '
+            f'{stats["atualizados"]} atualizados, '
+            f'{stats["menores"]} menores, '
+            f'{stats["com_saude"]} com condições de saúde, '
+            f'{stats["erros"]} erros.',
+            'success'
+        )
+        return redirect(url_for('alunos'))
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dry-run', action='store_true')
-    parser.add_argument('--arquivo')
-    args = parser.parse_args()
-    importar(arquivo=args.arquivo, dry_run=args.dry_run)
+    return render_template('importar_excel.html')

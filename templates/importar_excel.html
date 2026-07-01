@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Importar Alunos - CTM Cabapuã</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('alunos') }}">Alunos</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} fade-in">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <h2 class="mb-4 fade-in"><i class="fas fa-file-excel text-success"></i> Importar Alunos do Excel</h2>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card fade-in">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-upload"></i> Upload de Planilha</h5></div>
+                    <div class="card-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Selecione o arquivo Excel (.xlsx):</label>
+                                <input type="file" name="arquivo" class="form-control" accept=".xlsx,.xls" required>
+                                <small class="text-muted">Arquivo exportado do SurveyHeart</small>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Campos importados:</strong> Nome, Data nascimento, Telefone, Email, Endereço, Gênero, Responsável, Modalidade, Tipo (Particular/App), Vencimento, Condições de saúde, Alergias, Medicamentos, Contato emergência
+                            </div>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> Alunos com o mesmo nome serão <strong>atualizados</strong> automaticamente.
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-file-import"></i> Importar Alunos</button>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg"><i class="fas fa-arrow-left"></i> Cancelar</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card fade-in">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-question-circle"></i> Como Usar</h5></div>
+                    <div class="card-body">
+                        <ol class="mb-0">
+                            <li>Exporte o formulário do SurveyHeart como Excel</li>
+                            <li>Faça upload aqui</li>
+                            <li>O sistema detecta automaticamente condições de saúde</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

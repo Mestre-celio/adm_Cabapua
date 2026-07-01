@@ -97,6 +97,9 @@ class Aluno(db.Model):
     contato_emergencia = db.Column(db.String(200))
     endereco = db.Column(db.String(300))
     responsavel = db.Column(db.String(150))
+    altura = db.Column(db.Float)
+    peso = db.Column(db.Float)
+    genero = db.Column(db.String(20))
     
     calendar_event_id = db.Column(db.String(100))
     
@@ -147,6 +150,9 @@ app.register_blueprint(pagamentos_bp)
 
 from routes.google_sheets import google_sheets_bp
 app.register_blueprint(google_sheets_bp)
+
+from routes.importacao import importacao_bp
+app.register_blueprint(importacao_bp)
 
 # ============ INTEGRAÇÃO GOOGLE CALENDAR ============
 
@@ -772,6 +778,9 @@ def migrar_banco():
         ('aluno', 'contato_emergencia', 'VARCHAR(200)'),
         ('aluno', 'endereco', 'VARCHAR(300)'),
         ('aluno', 'responsavel', 'VARCHAR(150)'),
+        ('aluno', 'altura', 'FLOAT'),
+        ('aluno', 'peso', 'FLOAT'),
+        ('aluno', 'genero', 'VARCHAR(20)'),
     ]
     
     for tabela, coluna, tipo in migracoes:

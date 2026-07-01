@@ -6,7 +6,6 @@ from datetime import datetime, date
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
-import pandas as pd
 
 from app import db, Aluno
 
@@ -89,6 +88,7 @@ def _venc(pagamento_str):
 @importacao_bp.route('/importar', methods=['GET', 'POST'])
 @login_required
 def importar_excel():
+    import pandas as pd
     if current_user.nivel != 'admin':
         flash('Apenas administradores podem importar dados!', 'error')
         return redirect(url_for('dashboard'))
@@ -171,6 +171,7 @@ def importar_excel():
                 if saude['possui_condicao']: stats['com_saude'] += 1
 
             except Exception as e:
+                db.session.rollback()
                 stats['erros'] += 1
                 continue
 

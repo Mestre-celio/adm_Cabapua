@@ -77,7 +77,7 @@
                                     {% for a in ats %}
                                     <span class="badge bg-primary me-1">{{ a.nome }}</span>
                                     {% endfor %}
-                                    {% if ats|length > 1 %}
+                                    {% if aluno.tipo_aluno == 'turma' and ats|length > 1 %}
                                     <br><small class="text-muted">Total: R$ {{ "%.2f"|format(aluno.calcular_mensalidade()) }} <span class="badge bg-success">50% desc.</span></small>
                                     {% endif %}
                                 {% else %}
@@ -85,7 +85,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-{{ 'primary' if aluno.tipo_aluno == 'particular' else 'success' if aluno.tipo_aluno == 'totalpass' else 'info' if aluno.tipo_aluno == 'wellhub' else 'warning' }}">
+                                <span class="badge bg-{{ 'secondary' if aluno.tipo_aluno == 'turma' else 'primary' if aluno.tipo_aluno == 'particular' else 'success' if aluno.tipo_aluno == 'totalpass' else 'info' if aluno.tipo_aluno == 'wellhub' else 'warning' }}">
                                     {{ aluno.tipo_aluno|upper }}
                                 </span>
                             </td>

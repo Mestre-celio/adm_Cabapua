@@ -162,6 +162,10 @@ Aluno.atividades = db.relationship('Atividade', secondary=aluno_atividades,
     backref=db.backref('alunos_rel', lazy='dynamic'), lazy='dynamic')
 
 def calcular_mensalidade(self):
+    if self.tipo_aluno in ('wellhub', 'totalpass', 'gurupass'):
+        return 0
+    if self.tipo_aluno == 'particular':
+        return self.valor or 0
     ats = self.atividades.filter_by(ativa=True).all()
     if not ats:
         return 0
@@ -171,6 +175,8 @@ def calcular_mensalidade(self):
 Aluno.calcular_mensalidade = calcular_mensalidade
 
 def get_atividades_com_desconto(self):
+    if self.tipo_aluno != 'turma':
+        return []
     ats = self.atividades.filter_by(ativa=True).all()
     if not ats:
         return []
@@ -537,10 +543,11 @@ def novo_aluno():
                 nome=request.form['nome'],
                 email=request.form.get('email') or None,
                 telefone=request.form.get('telefone') or None,
-                tipo_aluno=request.form.get('tipo_aluno', 'particular'),
+                tipo_aluno=request.form.get('tipo_aluno', 'turma'),
                 matricula_app=request.form.get('matricula_app') or None,
                 graduacao=request.form.get('graduacao') or None,
                 plano=request.form.get('plano') or None,
+                valor=request.form.get('valor', type=float) or None,
                 status=request.form.get('status', 'ativo'),
                 endereco=request.form.get('endereco') or None,
                 responsavel=request.form.get('responsavel') or None,
@@ -610,10 +617,11 @@ def editar_aluno(id):
             aluno.nome = request.form['nome']
             aluno.email = request.form.get('email') or None
             aluno.telefone = request.form.get('telefone') or None
-            aluno.tipo_aluno = request.form.get('tipo_aluno', 'particular')
+            aluno.tipo_aluno = request.form.get('tipo_aluno', 'turma')
             aluno.matricula_app = request.form.get('matricula_app') or None
             aluno.graduacao = request.form.get('graduacao') or None
             aluno.plano = request.form.get('plano') or None
+            aluno.valor = request.form.get('valor', type=float) or None
             aluno.status = request.form.get('status', 'ativo')
             aluno.endereco = request.form.get('endereco') or None
             aluno.responsavel = request.form.get('responsavel') or None

@@ -56,9 +56,10 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Tipo de Aluno *</label>
                             <select name="tipo_aluno" class="form-select" required>
-                                <option value="particular" {% if aluno and aluno.tipo_aluno == 'particular' %}selected{% endif %}>Particular</option>
-                                <option value="totalpass" {% if aluno and aluno.tipo_aluno == 'totalpass' %}selected{% endif %}>TotalPass</option>
+                                <option value="turma" {% if aluno and aluno.tipo_aluno == 'turma' %}selected{% endif %}>Turma (Mensal)</option>
+                                <option value="particular" {% if aluno and aluno.tipo_aluno == 'particular' %}selected{% endif %}>Particular (R$ 70/h)</option>
                                 <option value="wellhub" {% if aluno and aluno.tipo_aluno == 'wellhub' %}selected{% endif %}>Wellhub</option>
+                                <option value="totalpass" {% if aluno and aluno.tipo_aluno == 'totalpass' %}selected{% endif %}>TotalPass</option>
                                 <option value="gurupass" {% if aluno and aluno.tipo_aluno == 'gurupass' %}selected{% endif %}>GuruPass</option>
                             </select>
                         </div>
@@ -96,6 +97,10 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Plano</label>
                             <input type="text" name="plano" class="form-control" value="{{ aluno.plano if aluno else '' }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor Mensal (R$)</label>
+                            <input type="number" step="0.01" name="valor" class="form-control" value="{{ aluno.valor if aluno else '' }}" placeholder="Preenchido auto p/ turma">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Vencimento</label>

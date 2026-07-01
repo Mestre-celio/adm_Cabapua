@@ -741,6 +741,25 @@ def api_checkin():
         'data_checkin': checkin.data_checkin.isoformat()
     })
 
+@app.route('/test-save')
+@login_required
+def test_save():
+    try:
+        atividade = Atividade.query.first()
+        if not atividade:
+            return 'ERRO: Nenhuma atividade cadastrada. Acesse /atividades primeiro.'
+        aluno_teste = Aluno(nome='Aluno Teste', telefone='000000000', tipo_aluno='particular', status='ativo')
+        db.session.add(aluno_teste)
+        db.session.flush()
+        aluno_teste.atividades.append(atividade)
+        db.session.commit()
+        db.session.delete(aluno_teste)
+        db.session.commit()
+        return 'OK: Sistema funcionando corretamente!'
+    except Exception as e:
+        db.session.rollback()
+        return f'ERRO: {str(e)}'
+
 @app.route('/surveyheart/importar', methods=['GET', 'POST'])
 @login_required
 def importar_surveyheart():

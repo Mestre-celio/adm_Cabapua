@@ -532,49 +532,70 @@ def alunos():
 @login_required
 def novo_aluno():
     if request.method == 'POST':
-        aluno = Aluno(
-            nome=request.form['nome'],
-            email=request.form.get('email'),
-            telefone=request.form.get('telefone'),
-            tipo_aluno=request.form['tipo_aluno'],
-            matricula_app=request.form.get('matricula_app'),
-            modalidade=request.form.get('modalidade'),
-            graduacao=request.form.get('graduacao'),
-            plano=request.form.get('plano'),
-            status=request.form.get('status', 'ativo'),
-            endereco=request.form.get('endereco'),
-            responsavel=request.form.get('responsavel'),
-            possui_condicao_saude=request.form.get('possui_condicao') == 'sim',
-            condicoes_saude=request.form.get('condicoes_saude'),
-            alergias=request.form.get('alergias'),
-            medicamentos=request.form.get('medicamentos'),
-            contato_emergencia=request.form.get('contato_emergencia')
-        )
+        try:
+            aluno = Aluno(
+                nome=request.form['nome'],
+                email=request.form.get('email') or None,
+                telefone=request.form.get('telefone') or None,
+                tipo_aluno=request.form.get('tipo_aluno', 'particular'),
+                matricula_app=request.form.get('matricula_app') or None,
+                graduacao=request.form.get('graduacao') or None,
+                plano=request.form.get('plano') or None,
+                status=request.form.get('status', 'ativo'),
+                endereco=request.form.get('endereco') or None,
+                responsavel=request.form.get('responsavel') or None,
+                possui_condicao_saude=request.form.get('possui_condicao') == 'sim',
+                condicoes_saude=request.form.get('condicoes_saude') or None,
+                alergias=request.form.get('alergias') or None,
+                medicamentos=request.form.get('medicamentos') or None,
+                contato_emergencia=request.form.get('contato_emergencia') or None
+            )
+            
+            try:
+                if request.form.get('data_nascimento'):
+                    aluno.data_nascimento = datetime.strptime(request.form['data_nascimento'], '%Y-%m-%d').date()
+            except ValueError:
+                flash('Data de nascimento inválida', 'warning')
+            
+            try:
+                if request.form.get('validade_plano_app'):
+                    aluno.validade_plano_app = datetime.strptime(request.form['validade_plano_app'], '%Y-%m-%d').date()
+            except ValueError:
+                flash('Data de validade do plano inválida', 'warning')
+            
+            try:
+                if request.form.get('vencimento'):
+                    aluno.vencimento = datetime.strptime(request.form['vencimento'], '%Y-%m-%d').date()
+            except ValueError:
+                flash('Data de vencimento inválida', 'warning')
+            
+            db.session.add(aluno)
+            db.session.flush()
+            
+            for ativ_id in request.form.getlist('atividades'):
+                try:
+                    atividade = Atividade.query.get(int(ativ_id))
+                    if atividade:
+                        aluno.atividades.append(atividade)
+                except (ValueError, TypeError):
+                    continue
+            
+            db.session.commit()
+            
+            if aluno.data_nascimento:
+                try:
+                    criar_evento_aniversario(aluno)
+                except Exception as e:
+                    print(f'Erro evento aniversário: {e}')
+            
+            flash('Aluno cadastrado com sucesso!', 'success')
+            return redirect(url_for('alunos'))
         
-        if request.form.get('data_nascimento'):
-            aluno.data_nascimento = datetime.strptime(request.form['data_nascimento'], '%Y-%m-%d').date()
-        
-        if request.form.get('validade_plano_app'):
-            aluno.validade_plano_app = datetime.strptime(request.form['validade_plano_app'], '%Y-%m-%d').date()
-        
-        if request.form.get('vencimento'):
-            aluno.vencimento = datetime.strptime(request.form['vencimento'], '%Y-%m-%d').date()
-        
-        db.session.add(aluno)
-        db.session.flush()
-        
-        for ativ_id in request.form.getlist('atividades'):
-            atividade = Atividade.query.get(int(ativ_id))
-            if atividade:
-                aluno.atividades.append(atividade)
-        
-        db.session.commit()
-        
-        if aluno.data_nascimento:
-            criar_evento_aniversario(aluno)
-        
-        flash('Aluno cadastrado com sucesso!', 'success')
-        return redirect(url_for('alunos'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao salvar aluno: {str(e)}', 'error')
+            todas_atividades = Atividade.query.filter_by(ativa=True).order_by(Atividade.nome).all()
+            return render_template('aluno_form.html', aluno=None, atividades=todas_atividades)
     
     todas_atividades = Atividade.query.filter_by(ativa=True).order_by(Atividade.nome).all()
     return render_template('aluno_form.html', aluno=None, atividades=todas_atividades)
@@ -585,42 +606,62 @@ def editar_aluno(id):
     aluno = Aluno.query.get_or_404(id)
     
     if request.method == 'POST':
-        aluno.nome = request.form['nome']
-        aluno.email = request.form.get('email')
-        aluno.telefone = request.form.get('telefone')
-        aluno.tipo_aluno = request.form['tipo_aluno']
-        aluno.matricula_app = request.form.get('matricula_app')
-        aluno.modalidade = request.form.get('modalidade')
-        aluno.graduacao = request.form.get('graduacao')
-        aluno.plano = request.form.get('plano')
-        aluno.status = request.form.get('status', 'ativo')
-        aluno.endereco = request.form.get('endereco')
-        aluno.responsavel = request.form.get('responsavel')
-        aluno.possui_condicao_saude = request.form.get('possui_condicao') == 'sim'
-        aluno.condicoes_saude = request.form.get('condicoes_saude')
-        aluno.alergias = request.form.get('alergias')
-        aluno.medicamentos = request.form.get('medicamentos')
-        aluno.contato_emergencia = request.form.get('contato_emergencia')
+        try:
+            aluno.nome = request.form['nome']
+            aluno.email = request.form.get('email') or None
+            aluno.telefone = request.form.get('telefone') or None
+            aluno.tipo_aluno = request.form.get('tipo_aluno', 'particular')
+            aluno.matricula_app = request.form.get('matricula_app') or None
+            aluno.graduacao = request.form.get('graduacao') or None
+            aluno.plano = request.form.get('plano') or None
+            aluno.status = request.form.get('status', 'ativo')
+            aluno.endereco = request.form.get('endereco') or None
+            aluno.responsavel = request.form.get('responsavel') or None
+            aluno.possui_condicao_saude = request.form.get('possui_condicao') == 'sim'
+            aluno.condicoes_saude = request.form.get('condicoes_saude') or None
+            aluno.alergias = request.form.get('alergias') or None
+            aluno.medicamentos = request.form.get('medicamentos') or None
+            aluno.contato_emergencia = request.form.get('contato_emergencia') or None
+            
+            try:
+                if request.form.get('data_nascimento'):
+                    aluno.data_nascimento = datetime.strptime(request.form['data_nascimento'], '%Y-%m-%d').date()
+            except ValueError:
+                flash('Data de nascimento inválida', 'warning')
+            
+            try:
+                if request.form.get('validade_plano_app'):
+                    aluno.validade_plano_app = datetime.strptime(request.form['validade_plano_app'], '%Y-%m-%d').date()
+            except ValueError:
+                flash('Data de validade do plano inválida', 'warning')
+            
+            try:
+                if request.form.get('vencimento'):
+                    aluno.vencimento = datetime.strptime(request.form['vencimento'], '%Y-%m-%d').date()
+            except ValueError:
+                flash('Data de vencimento inválida', 'warning')
+            
+            for atividade in list(aluno.atividades.all()):
+                aluno.atividades.remove(atividade)
+            
+            for ativ_id in request.form.getlist('atividades'):
+                try:
+                    atividade = Atividade.query.get(int(ativ_id))
+                    if atividade:
+                        aluno.atividades.append(atividade)
+                except (ValueError, TypeError):
+                    continue
+            
+            db.session.commit()
+            
+            flash('Aluno atualizado com sucesso!', 'success')
+            return redirect(url_for('alunos'))
         
-        if request.form.get('data_nascimento'):
-            aluno.data_nascimento = datetime.strptime(request.form['data_nascimento'], '%Y-%m-%d').date()
-        
-        if request.form.get('validade_plano_app'):
-            aluno.validade_plano_app = datetime.strptime(request.form['validade_plano_app'], '%Y-%m-%d').date()
-        
-        if request.form.get('vencimento'):
-            aluno.vencimento = datetime.strptime(request.form['vencimento'], '%Y-%m-%d').date()
-        
-        aluno.atividades.clear()
-        for ativ_id in request.form.getlist('atividades'):
-            atividade = Atividade.query.get(int(ativ_id))
-            if atividade:
-                aluno.atividades.append(atividade)
-        
-        db.session.commit()
-        
-        flash('Aluno atualizado com sucesso!', 'success')
-        return redirect(url_for('alunos'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao editar aluno: {str(e)}', 'error')
+            todas_atividades = Atividade.query.filter_by(ativa=True).order_by(Atividade.nome).all()
+            return render_template('aluno_form.html', aluno=aluno, atividades=todas_atividades)
     
     todas_atividades = Atividade.query.filter_by(ativa=True).order_by(Atividade.nome).all()
     return render_template('aluno_form.html', aluno=aluno, atividades=todas_atividades)

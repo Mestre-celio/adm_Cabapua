@@ -49,6 +49,8 @@ class Usuario(UserMixin, db.Model):
     nome = db.Column(db.String(120), nullable=False)
     nivel = db.Column(db.String(20), default='recepcao')
     email = db.Column(db.String(120))
+    google_id = db.Column(db.String(100), unique=True, nullable=True)
+    primeiro_acesso = db.Column(db.Boolean, default=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -103,6 +105,24 @@ class CheckIn(db.Model):
     
     aluno = db.relationship('Aluno', backref=db.backref('checkins', lazy=True))
 
+class Pagamento(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    aluno_id = db.Column(db.Integer, db.ForeignKey('aluno.id'), nullable=False)
+    valor = db.Column(db.Float, nullable=False)
+    data_pagamento = db.Column(db.Date, nullable=False, default=date.today)
+    data_vencimento = db.Column(db.Date, nullable=False)
+    tipo_plano = db.Column(db.String(20), nullable=False)
+    forma_pagamento = db.Column(db.String(30))
+    status = db.Column(db.String(20), default='pago')
+    observacoes = db.Column(db.Text)
+    referencia = db.Column(db.String(50))
+    
+    aluno = db.relationship('Aluno', backref=db.backref('pagamentos', lazy=True))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Pagamento {self.aluno.nome} - {self.data_pagamento}>'
+
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
@@ -110,6 +130,10 @@ def load_user(user_id):
 # Blueprint WhatsApp (importado após modelos para evitar circularidade)
 from routes.whatsapp import whatsapp_bp
 app.register_blueprint(whatsapp_bp)
+
+# Blueprint Pagamentos
+from routes.pagamentos import pagamentos_bp
+app.register_blueprint(pagamentos_bp)
 
 # ============ INTEGRAÇÃO GOOGLE CALENDAR ============
 
@@ -273,16 +297,82 @@ def login():
         
         if user and user.check_password(password):
             login_user(user)
+            if user.primeiro_acesso:
+                flash('Por segurança, altere sua senha agora!', 'warning')
+                return redirect(url_for('trocar_senha'))
             return redirect(url_for('dashboard'))
         flash('Usuario ou senha incorretos', 'error')
     
-    return render_template('login.html')
+    google_enabled = bool(os.getenv('GOOGLE_CLIENT_ID'))
+    return render_template('login.html', google_enabled=google_enabled)
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/login/google')
+def login_google():
+    google_id = os.getenv('GOOGLE_CLIENT_ID')
+    if not google_id:
+        flash('Login com Google não configurado!', 'error')
+        return redirect(url_for('login'))
+    
+    from authlib.integrations.flask_client import OAuth
+    oauth = OAuth(app)
+    oauth.register(
+        name='google',
+        client_id=google_id,
+        client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'}
+    )
+    redirect_uri = url_for('auth_google_callback', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+@app.route('/auth/google/callback')
+def auth_google_callback():
+    from authlib.integrations.flask_client import OAuth
+    oauth = OAuth(app)
+    oauth.register(
+        name='google',
+        client_id=os.getenv('GOOGLE_CLIENT_ID'),
+        client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'}
+    )
+    
+    token = oauth.google.authorize_access_token()
+    user_info = oauth.google.parse_id_token(token)
+    
+    email = user_info.get('email')
+    nome = user_info.get('name')
+    google_id = user_info.get('sub')
+    
+    usuario = Usuario.query.filter_by(google_id=google_id).first()
+    if not usuario:
+        usuario = Usuario.query.filter_by(email=email).first()
+        if usuario:
+            usuario.google_id = google_id
+            db.session.commit()
+        else:
+            username = email.split('@')[0]
+            usuario = Usuario(
+                username=username,
+                password_hash=generate_password_hash('google_' + google_id),
+                nome=nome, email=email, google_id=google_id,
+                nivel='admin', primeiro_acesso=True
+            )
+            db.session.add(usuario)
+            db.session.commit()
+    
+    login_user(usuario)
+    if usuario.primeiro_acesso:
+        flash('Bem-vindo! Configure sua senha.', 'warning')
+        return redirect(url_for('trocar_senha'))
+    flash('Login com Google realizado!', 'success')
+    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 @login_required
@@ -553,6 +643,7 @@ def trocar_senha():
             return render_template('trocar_senha.html')
         
         current_user.set_password(nova_senha)
+        current_user.primeiro_acesso = False
         db.session.commit()
         flash('Senha alterada com sucesso!', 'success')
         return redirect(url_for('dashboard'))
@@ -564,6 +655,11 @@ def trocar_senha():
 def alunos_saude():
     alunos_lista = Aluno.query.filter_by(possui_condicao_saude=True).order_by(Aluno.nome).all()
     return render_template('alunos_saude.html', alunos=alunos_lista)
+
+@app.route('/aluno/<int:aluno_id>/pagamentos')
+@login_required
+def pagamentos_aluno(aluno_id):
+    return redirect(url_for('pagamentos.historico_aluno', aluno_id=aluno_id))
 
 @app.route('/relatorios')
 @login_required
@@ -594,6 +690,7 @@ def criar_usuario_admin():
             email='admin@ctmcabapua.com.br'
         )
         admin.set_password('admin123')
+        admin.primeiro_acesso = True
         db.session.add(admin)
         db.session.commit()
         print('Usuario admin criado: admin / admin123')
@@ -609,12 +706,42 @@ def init_db_command():
     criar_usuario_admin()
     click.echo('Banco de dados inicializado!')
 
+# ── Migração automática do banco ───────────────────────────────
+# Adiciona colunas novas em tabelas existentes (para SQLite).
+def migrar_banco():
+    """Adiciona colunas que podem não existir em bancos criados antes da versão atual."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+    
+    migracoes = [
+        ('usuario', 'google_id', 'VARCHAR(100)'),
+        ('usuario', 'primeiro_acesso', 'BOOLEAN'),
+        ('aluno', 'possui_condicao_saude', 'BOOLEAN'),
+        ('aluno', 'condicoes_saude', 'TEXT'),
+        ('aluno', 'alergias', 'TEXT'),
+        ('aluno', 'medicamentos', 'TEXT'),
+        ('aluno', 'contato_emergencia', 'VARCHAR(200)'),
+        ('aluno', 'endereco', 'VARCHAR(300)'),
+        ('aluno', 'responsavel', 'VARCHAR(150)'),
+    ]
+    
+    for tabela, coluna, tipo in migracoes:
+        if tabela in inspector.get_table_names():
+            colunas_existentes = [c['name'] for c in inspector.get_columns(tabela)]
+            if coluna not in colunas_existentes:
+                try:
+                    with db.engine.connect() as conn:
+                        conn.execute(text(f'ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo}'))
+                        conn.commit()
+                    print(f'[MIGRACAO] Coluna {tabela}.{coluna} adicionada.')
+                except Exception as e:
+                    print(f'[MIGRACAO] Erro ao adicionar {tabela}.{coluna}: {e}')
+
 # ── Inicialização automática do banco ──────────────────────────
-# Roda sempre que o módulo é importado (gunicorn, flask run, python app.py).
-# O try/except evita crash se DATABASE_URL ainda não estiver disponível.
 try:
     with app.app_context():
         db.create_all()
+        migrar_banco()
         criar_usuario_admin()
 except Exception as _e:
     print(f'[AVISO] Não foi possível inicializar o banco agora: {_e}')

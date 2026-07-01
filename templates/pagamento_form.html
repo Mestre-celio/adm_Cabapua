@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Editar' if pagamento else 'Novo' }} Pagamento - CTM Cabapuã</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('pagamentos.lista_pagamentos') }}">Voltar</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <h2 class="fade-in"><i class="fas fa-{{ 'edit' if pagamento else 'plus' }}"></i> {{ 'Editar' if pagamento else 'Novo' }} Pagamento</h2>
+        <div class="card fade-in">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Aluno *</label>
+                            <select name="aluno_id" class="form-select" required {% if pagamento %}disabled{% endif %}>
+                                {% if not pagamento %}
+                                <option value="">Selecione...</option>
+                                {% for aluno in alunos %}
+                                <option value="{{ aluno.id }}">{{ aluno.nome }} - {{ aluno.modalidade }}</option>
+                                {% endfor %}
+                                {% else %}
+                                <option value="{{ pagamento.aluno_id }}" selected>{{ pagamento.aluno.nome }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo de Plano *</label>
+                            <select name="tipo_plano" class="form-select" required onchange="atualizarValor()">
+                                <option value="mensal" {% if pagamento and pagamento.tipo_plano == 'mensal' %}selected{% endif %}>Mensal</option>
+                                <option value="trimestral" {% if pagamento and pagamento.tipo_plano == 'trimestral' %}selected{% endif %}>Trimestral (3 meses)</option>
+                                <option value="semestral" {% if pagamento and pagamento.tipo_plano == 'semestral' %}selected{% endif %}>Semestral (6 meses)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor (R$) *</label>
+                            <input type="number" step="0.01" name="valor" class="form-control" required value="{{ pagamento.valor if pagamento else '120.00' }}">
+                            <small class="text-muted">Mensal: R$ 120 | Trimestral: R$ 300 | Semestral: R$ 540</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Data do Pagamento *</label>
+                            <input type="date" name="data_pagamento" class="form-control" required value="{{ pagamento.data_pagamento.strftime('%Y-%m-%d') if pagamento else today }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Forma de Pagamento *</label>
+                            <select name="forma_pagamento" class="form-select" required>
+                                <option value="pix" {% if pagamento and pagamento.forma_pagamento == 'pix' %}selected{% endif %}>PIX</option>
+                                <option value="dinheiro" {% if pagamento and pagamento.forma_pagamento == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                                <option value="cartao" {% if pagamento and pagamento.forma_pagamento == 'cartao' %}selected{% endif %}>Cartão</option>
+                                <option value="boleto" {% if pagamento and pagamento.forma_pagamento == 'boleto' %}selected{% endif %}>Boleto</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% if pagamento %}
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="pago" {% if pagamento.status == 'pago' %}selected{% endif %}>Pago</option>
+                            <option value="pendente" {% if pagamento.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                            <option value="cancelado" {% if pagamento.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea name="observacoes" class="form-control" rows="3">{{ pagamento.observacoes if pagamento else '' }}</textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>Valores sugeridos:</strong><br>
+                        • Mensal: R$ 120,00 (vence em 30 dias)<br>
+                        • Trimestral: R$ 300,00 (vence em 90 dias - economia de R$ 60)<br>
+                        • Semestral: R$ 540,00 (vence em 180 dias - economia de R$ 180)
+                    </div>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Salvar Pagamento</button>
+                    <a href="{{ url_for('pagamentos.lista_pagamentos') }}" class="btn btn-secondary"><i class="fas fa-times"></i> Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        function atualizarValor() {
+            const tipo = document.querySelector('[name="tipo_plano"]').value;
+            const valor = document.querySelector('[name="valor"]');
+            if (tipo === 'mensal') valor.value = '120.00';
+            else if (tipo === 'trimestral') valor.value = '300.00';
+            else if (tipo === 'semestral') valor.value = '540.00';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const d = document.querySelector('[name="data_pagamento"]');
+            if (!d.value) d.value = new Date().toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>

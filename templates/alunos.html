@@ -90,8 +90,9 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('editar_aluno', id=aluno.id) }}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
-                                <a href="{{ url_for('whatsapp.enviar_individual', aluno_id=aluno.id) }}" class="btn btn-sm whatsapp-btn" title="Enviar WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                                <a href="{{ url_for('editar_aluno', id=aluno.id) }}" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                                <a href="{{ url_for('pagamentos.historico_aluno', aluno_id=aluno.id) }}" class="btn btn-sm btn-info" title="Pagamentos"><i class="fas fa-money-bill"></i></a>
+                                <a href="{{ url_for('whatsapp.enviar_individual', aluno_id=aluno.id) }}" class="btn btn-sm whatsapp-btn" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
                                 <form method="POST" action="{{ url_for('excluir_aluno', id=aluno.id) }}" style="display:inline" onsubmit="return confirm('Tem certeza?');">
                                     <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
                                 </form>

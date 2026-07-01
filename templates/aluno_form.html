@@ -69,14 +69,23 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Modalidade</label>
-                            <select name="modalidade" class="form-select">
-                                <option value="">Selecione...</option>
-                                <option value="Capoeira" {% if aluno and aluno.modalidade == 'Capoeira' %}selected{% endif %}>Capoeira</option>
-                                <option value="Muay Thai" {% if aluno and aluno.modalidade == 'Muay Thai' %}selected{% endif %}>Muay Thai</option>
-                                <option value="Jiu-Jitsu" {% if aluno and aluno.modalidade == 'Jiu-Jitsu' %}selected{% endif %}>Jiu-Jitsu</option>
-                                <option value="Hapkido" {% if aluno and aluno.modalidade == 'Hapkido' %}selected{% endif %}>Hapkido</option>
-                            </select>
+                            <label class="form-label">Atividades *</label>
+                            <div class="border p-3 rounded" style="max-height:250px;overflow-y:auto;background:rgba(255,255,255,0.03);">
+                                {% if atividades %}
+                                    {% for a in atividades %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="atividades" value="{{ a.id }}" id="ativ_{{ a.id }}"
+                                            {% if aluno and a in aluno.atividades.all() %}checked{% endif %}>
+                                        <label class="form-check-label" for="ativ_{{ a.id }}">
+                                            <strong>{{ a.nome }}</strong> - R$ {{ "%.2f"|format(a.valor_base) }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted mb-0">Nenhuma atividade disponível. Crie atividades primeiro.</p>
+                                {% endif %}
+                            </div>
+                            <small class="text-muted">1ª atividade valor cheio, demais 50% de desconto</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Graduação</label>
@@ -87,10 +96,6 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Plano</label>
                             <input type="text" name="plano" class="form-control" value="{{ aluno.plano if aluno else '' }}">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Valor (R$)</label>
-                            <input type="number" step="0.01" name="valor" class="form-control" value="{{ aluno.valor if aluno else '0' }}">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Vencimento</label>

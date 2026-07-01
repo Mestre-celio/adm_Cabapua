@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atividades - CTM Cabapuã</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('listar_atividades') }}">Atividades</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-dumbbell"></i> Atividades</h2>
+            {% if current_user.nivel == 'admin' %}
+            <a href="{{ url_for('nova_atividade') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nova Atividade</a>
+            {% endif %}
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Descrição</th>
+                            <th>Valor Base</th>
+                            <th>Status</th>
+                            <th>Alunos</th>
+                            {% if current_user.nivel == 'admin' %}<th>Ações</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in atividades %}
+                        <tr>
+                            <td><strong>{{ a.nome }}</strong></td>
+                            <td>{{ a.descricao or '-' }}</td>
+                            <td>R$ {{ "%.2f"|format(a.valor_base) }}</td>
+                            <td>{% if a.ativa %}<span class="badge bg-success">Ativa</span>{% else %}<span class="badge bg-secondary">Inativa</span>{% endif %}</td>
+                            <td>{{ a.alunos_rel.count() }}</td>
+                            {% if current_user.nivel == 'admin' %}
+                            <td>
+                                <a href="{{ url_for('editar_atividade', id=a.id) }}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                <form method="POST" action="{{ url_for('excluir_atividade', id=a.id) }}" style="display:inline" onsubmit="return confirm('Excluir {{ a.nome }}?');">
+                                    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="{% if current_user.nivel == 'admin' %}6{% else %}5{% endif %}" class="text-center text-muted">Nenhuma atividade cadastrada</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

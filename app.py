@@ -136,6 +136,55 @@ class Pagamento(db.Model):
     def __repr__(self):
         return f'<Pagamento {self.aluno.nome} - {self.data_pagamento}>'
 
+# ============ MODELO DE ATIVIDADES (MÚLTIPLAS POR ALUNO) ============
+
+aluno_atividades = db.Table('aluno_atividades',
+    db.Column('aluno_id', db.Integer, db.ForeignKey('aluno.id'), primary_key=True),
+    db.Column('atividade_id', db.Integer, db.ForeignKey('atividade.id'), primary_key=True),
+    db.Column('data_inicio', db.Date, default=date.today),
+    db.Column('desconto_aplicado', db.Boolean, default=False)
+)
+
+class Atividade(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), unique=True, nullable=False)
+    descricao = db.Column(db.Text)
+    valor_base = db.Column(db.Float, nullable=False)
+    ativa = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Atividade {self.nome}>'
+
+# Adicionar relacionamento e métodos ao modelo Aluno (injetados após definição)
+Aluno.atividades = db.relationship('Atividade', secondary=aluno_atividades,
+    backref=db.backref('alunos_rel', lazy='dynamic'), lazy='dynamic')
+
+def calcular_mensalidade(self):
+    ats = self.atividades.filter_by(ativa=True).all()
+    if not ats:
+        return 0
+    vals = sorted([a.valor_base for a in ats], reverse=True)
+    return vals[0] + sum(v * 0.5 for v in vals[1:])
+
+Aluno.calcular_mensalidade = calcular_mensalidade
+
+def get_atividades_com_desconto(self):
+    ats = self.atividades.filter_by(ativa=True).all()
+    if not ats:
+        return []
+    ordenadas = sorted(ats, key=lambda a: a.valor_base, reverse=True)
+    resultado = []
+    for i, a in enumerate(ordenadas):
+        if i == 0:
+            resultado.append({'atividade': a, 'valor_original': a.valor_base, 'desconto': 0, 'valor_final': a.valor_base})
+        else:
+            resultado.append({'atividade': a, 'valor_original': a.valor_base, 'desconto': a.valor_base * 0.5, 'valor_final': a.valor_base * 0.5})
+    return resultado
+
+Aluno.get_atividades_com_desconto = get_atividades_com_desconto
+
 @login_manager.user_loader
 def load_user(user_id):
     return Usuario.query.get(int(user_id))
@@ -147,9 +196,6 @@ app.register_blueprint(whatsapp_bp)
 # Blueprint Pagamentos
 from routes.pagamentos import pagamentos_bp
 app.register_blueprint(pagamentos_bp)
-
-from routes.google_sheets import google_sheets_bp
-app.register_blueprint(google_sheets_bp)
 
 from routes.importacao import importacao_bp
 app.register_blueprint(importacao_bp)
@@ -495,7 +541,6 @@ def novo_aluno():
             modalidade=request.form.get('modalidade'),
             graduacao=request.form.get('graduacao'),
             plano=request.form.get('plano'),
-            valor=float(request.form.get('valor', 0)),
             status=request.form.get('status', 'ativo'),
             endereco=request.form.get('endereco'),
             responsavel=request.form.get('responsavel'),
@@ -516,6 +561,13 @@ def novo_aluno():
             aluno.vencimento = datetime.strptime(request.form['vencimento'], '%Y-%m-%d').date()
         
         db.session.add(aluno)
+        db.session.flush()
+        
+        for ativ_id in request.form.getlist('atividades'):
+            atividade = Atividade.query.get(int(ativ_id))
+            if atividade:
+                aluno.atividades.append(atividade)
+        
         db.session.commit()
         
         if aluno.data_nascimento:
@@ -524,7 +576,8 @@ def novo_aluno():
         flash('Aluno cadastrado com sucesso!', 'success')
         return redirect(url_for('alunos'))
     
-    return render_template('aluno_form.html', aluno=None)
+    todas_atividades = Atividade.query.filter_by(ativa=True).order_by(Atividade.nome).all()
+    return render_template('aluno_form.html', aluno=None, atividades=todas_atividades)
 
 @app.route('/aluno/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -540,7 +593,6 @@ def editar_aluno(id):
         aluno.modalidade = request.form.get('modalidade')
         aluno.graduacao = request.form.get('graduacao')
         aluno.plano = request.form.get('plano')
-        aluno.valor = float(request.form.get('valor', 0))
         aluno.status = request.form.get('status', 'ativo')
         aluno.endereco = request.form.get('endereco')
         aluno.responsavel = request.form.get('responsavel')
@@ -559,12 +611,19 @@ def editar_aluno(id):
         if request.form.get('vencimento'):
             aluno.vencimento = datetime.strptime(request.form['vencimento'], '%Y-%m-%d').date()
         
+        aluno.atividades.clear()
+        for ativ_id in request.form.getlist('atividades'):
+            atividade = Atividade.query.get(int(ativ_id))
+            if atividade:
+                aluno.atividades.append(atividade)
+        
         db.session.commit()
         
         flash('Aluno atualizado com sucesso!', 'success')
         return redirect(url_for('alunos'))
     
-    return render_template('aluno_form.html', aluno=aluno)
+    todas_atividades = Atividade.query.filter_by(ativa=True).order_by(Atividade.nome).all()
+    return render_template('aluno_form.html', aluno=aluno, atividades=todas_atividades)
 
 @app.route('/aluno/<int:id>/excluir', methods=['POST'])
 @login_required
@@ -721,6 +780,89 @@ def relatorios():
                           checkins_por_app=dict(checkins_por_app),
                           planos_vencendo=planos_vencendo)
 
+# ============ ROTAS DE ATIVIDADES ============
+
+@app.route('/atividades')
+@login_required
+def listar_atividades():
+    lista = Atividade.query.order_by(Atividade.nome).all()
+    return render_template('atividades.html', atividades=lista)
+
+@app.route('/atividade/nova', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def nova_atividade():
+    if request.method == 'POST':
+        a = Atividade(
+            nome=request.form['nome'],
+            descricao=request.form.get('descricao'),
+            valor_base=float(request.form['valor_base']),
+            ativa=request.form.get('ativa') == 'on'
+        )
+        db.session.add(a)
+        db.session.commit()
+        flash('Atividade criada!', 'success')
+        return redirect(url_for('listar_atividades'))
+    return render_template('atividade_form.html', atividade=None)
+
+@app.route('/atividade/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_atividade(id):
+    a = Atividade.query.get_or_404(id)
+    if request.method == 'POST':
+        a.nome = request.form['nome']
+        a.descricao = request.form.get('descricao')
+        a.valor_base = float(request.form['valor_base'])
+        a.ativa = request.form.get('ativa') == 'on'
+        db.session.commit()
+        flash('Atividade atualizada!', 'success')
+        return redirect(url_for('listar_atividades'))
+    return render_template('atividade_form.html', atividade=a)
+
+@app.route('/atividade/<int:id>/excluir', methods=['POST'])
+@login_required
+@admin_required
+def excluir_atividade(id):
+    a = Atividade.query.get_or_404(id)
+    if a.alunos_rel.count() > 0:
+        flash(f'Atividade vinculada a {a.alunos_rel.count()} aluno(s)!', 'error')
+        return redirect(url_for('listar_atividades'))
+    db.session.delete(a)
+    db.session.commit()
+    flash('Atividade excluída!', 'success')
+    return redirect(url_for('listar_atividades'))
+
+# ============ DASHBOARD FINANCEIRO ============
+
+@app.route('/dashboard/financeiro')
+@login_required
+@admin_required
+def dashboard_financeiro():
+    alunos = Aluno.query.filter_by(status='ativo').all()
+    receita_total = sum(a.calcular_mensalidade() for a in alunos)
+    total_descontos = sum(sum(i['desconto'] for i in a.get_atividades_com_desconto()) for a in alunos)
+    alunos_com_desconto = sum(1 for a in alunos if a.atividades.count() > 1)
+
+    dados_por_atividade = {}
+    for a in alunos:
+        for info in a.get_atividades_com_desconto():
+            nome = info['atividade'].nome
+            if nome not in dados_por_atividade:
+                dados_por_atividade[nome] = {'quantidade': 0, 'receita': 0}
+            dados_por_atividade[nome]['quantidade'] += 1
+            dados_por_atividade[nome]['receita'] += info['valor_final']
+
+    return render_template('dashboard_financeiro.html',
+        receita_mensal=receita_total,
+        total_descontos=total_descontos,
+        alunos_com_desconto=alunos_com_desconto,
+        projecao_1_mes=receita_total,
+        projecao_3_meses=receita_total * 3,
+        projecao_6_meses=receita_total * 6,
+        dados_por_atividade=dados_por_atividade,
+        total_alunos=len(alunos))
+
 # ============ INICIALIZAÇÃO DO BANCO ============
 
 def criar_usuario_admin():
@@ -781,10 +923,14 @@ def migrar_banco():
         ('aluno', 'altura', 'FLOAT'),
         ('aluno', 'peso', 'FLOAT'),
         ('aluno', 'genero', 'VARCHAR(20)'),
+        ('aluno_atividades', None, None),
+        ('atividade', None, None),
     ]
     
     for tabela, coluna, tipo in migracoes:
         if tabela in inspector.get_table_names():
+            if coluna is None:
+                continue
             colunas_existentes = [c['name'] for c in inspector.get_columns(tabela)]
             if coluna not in colunas_existentes:
                 try:

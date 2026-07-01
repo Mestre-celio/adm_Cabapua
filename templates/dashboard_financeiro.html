@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financeiro - CTM Cabapuã</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">🥋 CTM Cabapuã</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('listar_atividades') }}">Atividades</a>
+                <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid mt-4 px-4">
+        <h2><i class="fas fa-chart-line"></i> Dashboard Financeiro</h2>
+        <p class="text-muted">Projeção de ganhos e análise financeira</p>
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="stats-card" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;">
+                    <h2>R$ {{ "%.2f"|format(receita_mensal) }}</h2>
+                    <p>Receita Mensal ({{ total_alunos }} alunos)</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;">
+                    <h2>R$ {{ "%.2f"|format(projecao_3_meses) }}</h2>
+                    <p>Projeção 3 Meses</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;">
+                    <h2>R$ {{ "%.2f"|format(projecao_6_meses) }}</h2>
+                    <p>Projeção 6 Meses</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;">
+                    <h2>{{ alunos_com_desconto }}</h2>
+                    <p>Alunos c/ Desconto (R$ {{ "%.2f"|format(total_descontos) }}/mês)</p>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Detalhes por Atividade</h5></div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead><tr><th>Atividade</th><th>Alunos</th><th>Receita</th><th>3 Meses</th><th>6 Meses</th></tr></thead>
+                            <tbody>
+                                {% for nome, dados in dados_por_atividade.items() %}
+                                <tr><td><strong>{{ nome }}</strong></td><td>{{ dados.quantidade }}</td><td>R$ {{ "%.2f"|format(dados.receita) }}</td><td>R$ {{ "%.2f"|format(dados.receita * 3) }}</td><td>R$ {{ "%.2f"|format(dados.receita * 6) }}</td></tr>
+                                {% else %}
+                                <tr><td colspan="5" class="text-muted text-center">Nenhum dado</td></tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot><tr class="table-active"><th>Total</th><th>{{ total_alunos }}</th><th>R$ {{ "%.2f"|format(receita_mensal) }}</th><th>R$ {{ "%.2f"|format(projecao_3_meses) }}</th><th>R$ {{ "%.2f"|format(projecao_6_meses) }}</th></tr></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header"><h5 class="mb-0">Política de Descontos</h5></div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> <strong>1ª Atividade:</strong> Valor integral</li>
+                            <li class="mb-2"><i class="fas fa-check text-success"></i> <strong>2ª+ Atividades:</strong> 50% de desconto</li>
+                        </ul>
+                        <hr>
+                        <p><strong>Economia para alunos:</strong> <span class="text-success">R$ {{ "%.2f"|format(total_descontos) }}/mês</span></p>
+                        <p><strong>Ticket médio:</strong> R$ {{ "%.2f"|format(receita_mensal / total_alunos) if total_alunos > 0 else '0,00' }}/mês</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -59,7 +59,7 @@
                         <tr>
                             <th>Nome</th>
                             <th>Telefone</th>
-                            <th>Modalidade</th>
+                            <th>Atividades</th>
                             <th>Tipo</th>
                             <th>Status</th>
                             <th>Saúde</th>
@@ -71,7 +71,19 @@
                         <tr>
                             <td>{{ aluno.nome }}</td>
                             <td>{{ aluno.telefone or '-' }}</td>
-                            <td>{{ aluno.modalidade or '-' }}</td>
+                            <td>
+                                {% set ats = aluno.atividades.filter_by(ativa=True).all() %}
+                                {% if ats %}
+                                    {% for a in ats %}
+                                    <span class="badge bg-primary me-1">{{ a.nome }}</span>
+                                    {% endfor %}
+                                    {% if ats|length > 1 %}
+                                    <br><small class="text-muted">Total: R$ {{ "%.2f"|format(aluno.calcular_mensalidade()) }} <span class="badge bg-success">50% desc.</span></small>
+                                    {% endif %}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 <span class="badge bg-{{ 'primary' if aluno.tipo_aluno == 'particular' else 'success' if aluno.tipo_aluno == 'totalpass' else 'info' if aluno.tipo_aluno == 'wellhub' else 'warning' }}">
                                     {{ aluno.tipo_aluno|upper }}

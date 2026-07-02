@@ -55,7 +55,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Tipo de Aluno *</label>
-                            <select name="tipo_aluno" class="form-select" required>
+                            <select name="tipo_aluno" class="form-select" required onchange="filtrarAtividades()">
                                 <option value="turma" {% if aluno and aluno.tipo_aluno == 'turma' %}selected{% endif %}>Turma (Mensal)</option>
                                 <option value="particular" {% if aluno and aluno.tipo_aluno == 'particular' %}selected{% endif %}>Particular (R$ 70/h)</option>
                                 <option value="wellhub" {% if aluno and aluno.tipo_aluno == 'wellhub' %}selected{% endif %}>Wellhub</option>
@@ -68,13 +68,21 @@
                             <input type="text" name="matricula_app" class="form-control" value="{{ aluno.matricula_app if aluno else '' }}">
                         </div>
                     </div>
-                    <div class="row">
+
+                    <div id="secao_modalidade_particular" class="row" style="display:none">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Atividades *</label>
+                            <label class="form-label">Modalidade (Particular)</label>
+                            <input type="text" name="modalidade_particular" class="form-control" value="{{ aluno.modalidade_particular if aluno else '' }}" placeholder="Ex: Kung Fu, Defesa Pessoal...">
+                        </div>
+                    </div>
+
+                    <div id="secao_atividades" class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Atividades</label>
                             <div class="border p-3 rounded" style="max-height:250px;overflow-y:auto;background:rgba(255,255,255,0.03);">
                                 {% if atividades %}
                                     {% for a in atividades %}
-                                    <div class="form-check">
+                                    <div class="form-check atividade-item" data-tipo="{{ a.tipo }}">
                                         <input class="form-check-input" type="checkbox" name="atividades" value="{{ a.id }}" id="ativ_{{ a.id }}"
                                             {% if aluno and a in aluno.atividades.all() %}checked{% endif %}>
                                         <label class="form-check-label" for="ativ_{{ a.id }}">
@@ -86,13 +94,14 @@
                                     <p class="text-muted mb-0">Nenhuma atividade disponível. Crie atividades primeiro.</p>
                                 {% endif %}
                             </div>
-                            <small class="text-muted">1ª atividade valor cheio, demais 50% de desconto</small>
+                            <small class="text-muted" id="dica_desconto">1ª atividade valor cheio, demais 50% de desconto</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Graduação</label>
                             <input type="text" name="graduacao" class="form-control" value="{{ aluno.graduacao if aluno else '' }}">
                         </div>
                     </div>
+
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Plano</label>
@@ -121,6 +130,28 @@
                             </select>
                         </div>
                     </div>
+
+                    <hr>
+                    <h5><i class="fas fa-users"></i> Vínculo Familiar</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Parentesco</label>
+                            <select name="parentesco_familiar" class="form-select">
+                                <option value="">Nenhum</option>
+                                <option value="pai" {% if aluno and aluno.parentesco_familiar == 'pai' %}selected{% endif %}>Pai</option>
+                                <option value="mae" {% if aluno and aluno.parentesco_familiar == 'mae' %}selected{% endif %}>Mãe</option>
+                                <option value="irmao" {% if aluno and aluno.parentesco_familiar == 'irmao' %}selected{% endif %}>Irmão(ã)</option>
+                                <option value="conjuge" {% if aluno and aluno.parentesco_familiar == 'conjuge' %}selected{% endif %}>Cônjuge</option>
+                                <option value="filho" {% if aluno and aluno.parentesco_familiar == 'filho' %}selected{% endif %}>Filho(a)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Vincular a Familiar (ID)</label>
+                            <input type="number" name="familiar_id" class="form-control" value="{{ aluno.familiar_id if aluno else '' }}" placeholder="Nº do aluno principal" min="1">
+                            <small class="text-muted">50% de desconto na mensalidade</small>
+                        </div>
+                    </div>
+
                     <hr>
                     <h5 class="text-danger"><i class="fas fa-heartbeat"></i> Dados de Saúde</h5>
                     <div class="row">
@@ -158,5 +189,36 @@
             </div>
         </div>
     </div>
+
+<script>
+function filtrarAtividades() {
+    var tipo = document.querySelector('select[name="tipo_aluno"]').value;
+    var items = document.querySelectorAll('.atividade-item');
+    var secaoAtividades = document.getElementById('secao_atividades');
+    var secaoParticular = document.getElementById('secao_modalidade_particular');
+    var dica = document.getElementById('dica_desconto');
+
+    if (tipo === 'turma') {
+        secaoAtividades.style.display = 'flex';
+        secaoParticular.style.display = 'none';
+        dica.style.display = 'block';
+        items.forEach(function(el) {
+            el.style.display = el.dataset.tipo === 'turma' ? '' : 'none';
+        });
+    } else if (tipo === 'particular') {
+        secaoAtividades.style.display = 'flex';
+        secaoParticular.style.display = 'flex';
+        dica.style.display = 'none';
+        items.forEach(function(el) {
+            el.style.display = el.dataset.tipo === 'particular' ? '' : 'none';
+        });
+    } else {
+        secaoAtividades.style.display = 'none';
+        secaoParticular.style.display = 'none';
+    }
+}
+filtrarAtividades();
+</script>
+
 </body>
 </html>

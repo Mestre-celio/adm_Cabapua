@@ -26,6 +26,18 @@
             <a href="{{ url_for('nova_atividade') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nova Atividade</a>
             {% endif %}
         </div>
+
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item">
+                <a class="nav-link {% if tipo_filtro == 'todas' %}active{% endif %}" href="{{ url_for('listar_atividades') }}">Todas</a>
+            </li>
+            {% for t in tipos_disponiveis %}
+            <li class="nav-item">
+                <a class="nav-link {% if tipo_filtro == t %}active{% endif %}" href="{{ url_for('listar_atividades', tipo=t) }}">{{ t|capitalize }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+
         <div class="card">
             <div class="card-body">
                 <table class="table table-hover">
@@ -33,6 +45,7 @@
                         <tr>
                             <th>Nome</th>
                             <th>Descrição</th>
+                            <th>Tipo</th>
                             <th>Valor Base</th>
                             <th>Status</th>
                             <th>Alunos</th>
@@ -44,6 +57,7 @@
                         <tr>
                             <td><strong>{{ a.nome }}</strong></td>
                             <td>{{ a.descricao or '-' }}</td>
+                            <td><span class="badge bg-info">{{ a.tipo|capitalize }}</span></td>
                             <td>R$ {{ "%.2f"|format(a.valor_base) }}</td>
                             <td>{% if a.ativa %}<span class="badge bg-success">Ativa</span>{% else %}<span class="badge bg-secondary">Inativa</span>{% endif %}</td>
                             <td>{{ a.alunos_rel.count() }}</td>
@@ -57,7 +71,7 @@
                             {% endif %}
                         </tr>
                         {% else %}
-                        <tr><td colspan="{% if current_user.nivel == 'admin' %}6{% else %}5{% endif %}" class="text-center text-muted">Nenhuma atividade cadastrada</td></tr>
+                        <tr><td colspan="{% if current_user.nivel == 'admin' %}7{% else %}6{% endif %}" class="text-center text-muted">Nenhuma atividade cadastrada</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

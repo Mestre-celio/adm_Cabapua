@@ -101,6 +101,10 @@ class Aluno(db.Model):
     peso = db.Column(db.Float)
     genero = db.Column(db.String(20))
     
+    modalidade_particular = db.Column(db.String(100))
+    parentesco_familiar = db.Column(db.String(30))
+    familiar_id = db.Column(db.Integer, db.ForeignKey('aluno.id'), nullable=True)
+    
     calendar_event_id = db.Column(db.String(100))
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -138,17 +142,11 @@ class Pagamento(db.Model):
 
 # ============ MODELO DE ATIVIDADES (MÚLTIPLAS POR ALUNO) ============
 
-aluno_atividades = db.Table('aluno_atividades',
-    db.Column('aluno_id', db.Integer, db.ForeignKey('aluno.id'), primary_key=True),
-    db.Column('atividade_id', db.Integer, db.ForeignKey('atividade.id'), primary_key=True),
-    db.Column('data_inicio', db.Date, default=date.today),
-    db.Column('desconto_aplicado', db.Boolean, default=False)
-)
-
 class Atividade(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), unique=True, nullable=False)
     descricao = db.Column(db.Text)
+    tipo = db.Column(db.String(30), default='turma')
     valor_base = db.Column(db.Float, nullable=False)
     ativa = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -157,9 +155,21 @@ class Atividade(db.Model):
     def __repr__(self):
         return f'<Atividade {self.nome}>'
 
-# Adicionar relacionamento e métodos ao modelo Aluno (injetados após definição)
-Aluno.atividades = db.relationship('Atividade', secondary=aluno_atividades,
+class AlunoAtividade(db.Model):
+    __tablename__ = 'aluno_atividades'
+    aluno_id = db.Column(db.Integer, db.ForeignKey('aluno.id', ondelete='CASCADE'), primary_key=True)
+    atividade_id = db.Column(db.Integer, db.ForeignKey('atividade.id', ondelete='CASCADE'), primary_key=True)
+    data_inicio = db.Column(db.Date, default=date.today)
+    desconto_aplicado = db.Column(db.Boolean, default=False)
+    horas_aula = db.Column(db.Float, nullable=True)
+
+# Relacionamento N:N entre Aluno e Atividade
+Aluno.atividades = db.relationship('Atividade', secondary='aluno_atividades',
     backref=db.backref('alunos_rel', lazy='dynamic'), lazy='dynamic')
+
+# Self-referential: familiar (parente) principal
+Aluno.familiar = db.relationship('Aluno', remote_side='Aluno.id',
+    foreign_keys='Aluno.familiar_id')
 
 def calcular_mensalidade(self):
     if self.tipo_aluno in ('wellhub', 'totalpass', 'gurupass'):
@@ -170,7 +180,13 @@ def calcular_mensalidade(self):
     if not ats:
         return 0
     vals = sorted([a.valor_base for a in ats], reverse=True)
-    return vals[0] + sum(v * 0.5 for v in vals[1:])
+    total = vals[0] + sum(v * 0.5 for v in vals[1:])
+    # Desconto familiar: 50% se vinculado a outro aluno ativo
+    if self.familiar_id:
+        familiar = Aluno.query.get(self.familiar_id)
+        if familiar and familiar.status == 'ativo':
+            total *= 0.5
+    return total
 
 Aluno.calcular_mensalidade = calcular_mensalidade
 
@@ -544,6 +560,8 @@ def novo_aluno():
                 email=request.form.get('email') or None,
                 telefone=request.form.get('telefone') or None,
                 tipo_aluno=request.form.get('tipo_aluno', 'turma'),
+                modalidade_particular=request.form.get('modalidade_particular') or None,
+                parentesco_familiar=request.form.get('parentesco_familiar') or None,
                 matricula_app=request.form.get('matricula_app') or None,
                 graduacao=request.form.get('graduacao') or None,
                 plano=request.form.get('plano') or None,
@@ -587,6 +605,10 @@ def novo_aluno():
                 except (ValueError, TypeError):
                     continue
             
+            fam_id = request.form.get('familiar_id', type=int)
+            if fam_id:
+                aluno.familiar_id = fam_id
+            
             db.session.commit()
             
             if aluno.data_nascimento:
@@ -618,6 +640,8 @@ def editar_aluno(id):
             aluno.email = request.form.get('email') or None
             aluno.telefone = request.form.get('telefone') or None
             aluno.tipo_aluno = request.form.get('tipo_aluno', 'turma')
+            aluno.modalidade_particular = request.form.get('modalidade_particular') or None
+            aluno.parentesco_familiar = request.form.get('parentesco_familiar') or None
             aluno.matricula_app = request.form.get('matricula_app') or None
             aluno.graduacao = request.form.get('graduacao') or None
             aluno.plano = request.form.get('plano') or None
@@ -659,6 +683,9 @@ def editar_aluno(id):
                         aluno.atividades.append(atividade)
                 except (ValueError, TypeError):
                     continue
+            
+            fam_id = request.form.get('familiar_id', type=int)
+            aluno.familiar_id = fam_id if fam_id else None
             
             db.session.commit()
             
@@ -853,8 +880,14 @@ def relatorios():
 @app.route('/atividades')
 @login_required
 def listar_atividades():
-    lista = Atividade.query.order_by(Atividade.nome).all()
-    return render_template('atividades.html', atividades=lista)
+    tipo_filtro = request.args.get('tipo', 'todas')
+    query = Atividade.query
+    if tipo_filtro != 'todas':
+        query = query.filter_by(tipo=tipo_filtro)
+    lista = query.order_by(Atividade.nome).all()
+    tipos_disponiveis = db.session.query(Atividade.tipo).distinct().all()
+    tipos_disponiveis = [t[0] for t in tipos_disponiveis if t[0]]
+    return render_template('atividades.html', atividades=lista, tipo_filtro=tipo_filtro, tipos_disponiveis=tipos_disponiveis)
 
 @app.route('/atividade/nova', methods=['GET', 'POST'])
 @login_required
@@ -864,6 +897,7 @@ def nova_atividade():
         a = Atividade(
             nome=request.form['nome'],
             descricao=request.form.get('descricao'),
+            tipo=request.form.get('tipo', 'turma'),
             valor_base=float(request.form['valor_base']),
             ativa=request.form.get('ativa') == 'on'
         )
@@ -881,6 +915,7 @@ def editar_atividade(id):
     if request.method == 'POST':
         a.nome = request.form['nome']
         a.descricao = request.form.get('descricao')
+        a.tipo = request.form.get('tipo', 'turma')
         a.valor_base = float(request.form['valor_base'])
         a.ativa = request.form.get('ativa') == 'on'
         db.session.commit()
@@ -991,8 +1026,11 @@ def migrar_banco():
         ('aluno', 'altura', 'FLOAT'),
         ('aluno', 'peso', 'FLOAT'),
         ('aluno', 'genero', 'VARCHAR(20)'),
-        ('aluno_atividades', None, None),
-        ('atividade', None, None),
+        ('aluno', 'modalidade_particular', 'VARCHAR(100)'),
+        ('aluno', 'parentesco_familiar', 'VARCHAR(30)'),
+        ('aluno', 'familiar_id', 'INTEGER'),
+        ('atividade', 'tipo', 'VARCHAR(30)'),
+        ('aluno_atividades', 'horas_aula', 'FLOAT'),
     ]
     
     for tabela, coluna, tipo in migracoes:

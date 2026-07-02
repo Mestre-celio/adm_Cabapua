@@ -27,7 +27,7 @@ Deploy hook: `https://api.render.com/deploy/srv-d922t24vikkc73er506g?key=E5I4F4c
 - **CheckIn**: aluno_id, data_checkin, origem
 - **Pagamento**: aluno_id, valor, data_pagamento, tipo_plano, status
 
-## Recém implementado (commit 31c5b63)
+## Recém implementado (commit 95e46d9)
 1. Modelo `Atividade` + tabela associativa `aluno_atividades`
 2. Aluno pode ter múltiplas atividades (N:N)
 3. Cálculo automático: 1ª atividade (maior valor) cheia, demais 50% desconto
@@ -37,6 +37,9 @@ Deploy hook: `https://api.render.com/deploy/srv-d922t24vikkc73er506g?key=E5I4F4c
 7. Rota de teste: `/test-save` (requer login)
 8. Google Sheets removido (blueprint, rotas, templates)
 9. Rotas `/aluno/novo` e `/aluno/<id>/editar` com `try/except`, `or None`, `remove()` em vez de `clear()`
+10. Seed script: `seed_atividades.py` — 9 atividades a R$ 120 (Capoeira, Jiu-Jitsu, Muay Thai, Hapkido, Kickboxing, Ninjutsu, Kenjutsu, Boxe, Grab Punch)
+11. Tipos de aluno: `turma` (mensal por atividade), `particular` (R$ 70/h), `wellhub`/`totalpass`/`gurupass` (app)
+12. `calcular_mensalidade()` condicional por `tipo_aluno`
 
 ## Problemas conhecidos
 - `adm_Cabapua/` é um sub-repositório git incluído acidentalmente; `git rm --cached -f` + `.gitignore` já configurado
